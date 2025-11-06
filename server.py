@@ -241,8 +241,25 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error(404, 'Support page not found')
                 return
         
-        # Inject config for HTML files
+        # Landing page on root domain
         if self.path == '/' or self.path == '/index.html':
+            try:
+                with open('landing.html', 'r', encoding='utf-8') as f:
+                    html_content = f.read()
+                
+                # Send response
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Length', len(html_content.encode('utf-8')))
+                self.end_headers()
+                self.wfile.write(html_content.encode('utf-8'))
+                return
+            except Exception as e:
+                print(f"❌ Error serving landing page: {e}")
+                # Fallback to default handling
+        
+        # Application on /route/ path
+        if self.path == '/route/' or self.path == '/route' or self.path == '/route/index.html':
             try:
                 with open('index.html', 'r', encoding='utf-8') as f:
                     html_content = f.read()
@@ -261,8 +278,45 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 print(f"❌ Error injecting config: {e}")
                 # Fallback to default handling
         
-        # Handle static HTML files (support.html, landing.html, etc.)
-        if self.path.endswith('.html'):
+        # Handle /route/ paths for application files and static assets
+        if self.path.startswith('/route/'):
+            # Remove /route/ prefix and serve from root
+            file_path = self.path[7:]  # Remove '/route/'
+            if not file_path:
+                file_path = 'index.html'
+            
+            try:
+                if os.path.exists(file_path):
+                    # Handle HTML files
+                    if file_path.endswith('.html'):
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            html_content = f.read()
+                        
+                        # Inject config for index.html
+                        if file_path == 'index.html':
+                            html_content = inject_config(html_content)
+                        
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'text/html; charset=utf-8')
+                        self.send_header('Content-Length', len(html_content.encode('utf-8')))
+                        self.end_headers()
+                        self.wfile.write(html_content.encode('utf-8'))
+                        return
+                    else:
+                        # Handle static files (CSS, JS, images, etc.) - use parent class method
+                        # Temporarily modify path to serve from root
+                        original_path = self.path
+                        self.path = '/' + file_path
+                        try:
+                            super().do_GET()
+                        finally:
+                            self.path = original_path
+                        return
+            except Exception as e:
+                print(f"❌ Error serving /route/ file: {e}")
+        
+        # Handle static HTML files (information.html, etc.) on root
+        if self.path.endswith('.html') and not self.path.startswith('/route/'):
             try:
                 filename = self.path[1:]  # Remove leading slash
                 print(f"🔍 Looking for HTML file: {filename}")
@@ -296,8 +350,8 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(429, 'Too Many Requests')
             return
         
-        # OAuth token exchange
-        if self.path == '/api/strava/token':
+        # OAuth token exchange (works for both root and /route/)
+        if self.path == '/api/strava/token' or self.path == '/route/api/strava/token':
             self.handle_token_exchange()
         else:
             self.send_error(404, 'Not Found')
