@@ -1,8 +1,8 @@
 // SznStore - Exact copy of nextPoly Zustand store
 // Точная копия логики управления состоянием из nextPoly
-// Version: 2.0 - Updated branding to 5zn
+// Version: 2.0 - Updated branding to addicted
 
-console.log('🏪 Loading SznStore v2.0 - Updated branding to 5zn');
+console.log('🏪 Loading SznStore v2.0 - Updated branding to addicted');
 
 class SznStore {
     constructor() {

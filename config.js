@@ -1,4 +1,4 @@
-// 5zn Web - Configuration
+// addicted Web - Configuration
 // Update these values for your environment
 
 const CONFIG = {
@@ -6,7 +6,7 @@ const CONFIG = {
     STRAVA: {
         CLIENT_ID: 'YOUR_STRAVA_CLIENT_ID', // Replace with your Strava Client ID
         CLIENT_SECRET: 'YOUR_STRAVA_CLIENT_SECRET', // Replace with your Strava Client Secret
-        REDIRECT_URI: window.location.origin + '/oauth/',
+        REDIRECT_URI: window.location.origin + '/route/oauth/',
         SCOPE: 'read,activity:read_all',
         API_BASE_URL: 'https://www.strava.com/api/v3'
     },
@@ -20,7 +20,7 @@ const CONFIG = {
     
     // App Settings
     APP: {
-        NAME: '5zn.io',
+        NAME: 'addicted',
         VERSION: '1.0.0',
         DEFAULT_WORKOUTS_COUNT: 10
     }
@@ -28,7 +28,7 @@ const CONFIG = {
 
 // Development helpers
 if (CONFIG.ENV.DEBUG) {
-    console.log('🔧 5zn Web - Development Mode');
+    console.log('🔧 addicted Web - Development Mode');
     console.log('📋 Configuration:', CONFIG);
 }
 

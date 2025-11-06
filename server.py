@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Production HTTP server for 5zn Web
+Production HTTP server for addicted Web
 Enhanced security features: CSP, CORS, Rate Limiting
 """
 
@@ -95,7 +95,7 @@ window.CONFIG = {{
     STRAVA: {{
         CLIENT_ID: '{STRAVA_CLIENT_ID}',
         CLIENT_SECRET: '{STRAVA_CLIENT_SECRET}',
-        REDIRECT_URI: window.location.origin + '/oauth/',
+        REDIRECT_URI: window.location.origin + '/route/oauth/',
         SCOPE: 'read,activity:read_all',
         API_BASE_URL: 'https://www.strava.com/api/v3'
     }},
@@ -105,14 +105,14 @@ window.CONFIG = {{
         MOCK_DATA: false
     }},
     APP: {{
-        NAME: '5zn.io',
+        NAME: 'addicted',
         VERSION: '1.0.0',
         DEFAULT_WORKOUTS_COUNT: 10
     }}
 }};
 
 if (CONFIG.ENV.DEBUG) {{
-    console.log('🔧 5zn Web Configuration:', CONFIG);
+    console.log('🔧 addicted Web Configuration:', CONFIG);
 }}
 
 console.log('🔑 Config injected - CLIENT_ID:', window.CONFIG.STRAVA.CLIENT_ID.substring(0, 10) + '...');
@@ -608,7 +608,7 @@ def main():
     
     with socketserver.TCPServer(("", PORT), Handler) as httpd:
         env = "RAILWAY" if is_railway else ("PRODUCTION" if is_production else "DEVELOPMENT")
-        print(f"🚀 5zn Web Server ({env}) running on port {PORT}")
+        print(f"🚀 addicted Web Server ({env}) running on port {PORT}")
         print(f"📱 Server listening on 0.0.0.0:{PORT}")
         
         if is_railway:

@@ -1,8 +1,8 @@
 // SznCanvasComponent - Exact copy of nextPoly canvas logic
 // Точная копия компонента canvas из nextPoly
-// Version: 2.0 - Updated branding to 5zn
+// Version: 2.0 - Updated branding to addicted
 
-console.log('🎨 Loading SznCanvasComponent v2.0 - Updated branding to 5zn');
+console.log('🎨 Loading SznCanvasComponent v2.0 - Updated branding to addicted');
 
 class SznCanvasComponent {
     constructor(canvasElement, store) {

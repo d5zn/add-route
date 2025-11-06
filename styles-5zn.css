@@ -1,4 +1,4 @@
-/* 5zn Canvas CSS - Минимальные стили без конфликтов */
+/* addicted Canvas CSS - Минимальные стили без конфликтов */
 
 /* Базовые стили */
 * {
@@ -194,15 +194,18 @@ html, body {
     margin: 0;
 }
 
-.nav-logo {
-    height: 32px;
-    width: auto;
-    filter: brightness(0) invert(1); /* Делает логотип белым */
+.nav-logo-text {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif;
+    font-weight: 900;
+    font-style: italic;
+    font-size: 20px;
+    color: #ffffff;
     cursor: pointer;
     transition: opacity 0.2s ease;
+    letter-spacing: -0.5px;
 }
 
-.nav-logo:hover {
+.nav-logo-text:hover {
     opacity: 0.8;
 }
 

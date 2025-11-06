@@ -1,8 +1,8 @@
-// SznApp with 5zn Logic - Exact copy of nextPoly data handling
+// SznApp with addicted Logic - Exact copy of nextPoly data handling
 // Точная копия логики работы с данными из nextPoly
-// Version: 2.0 - Updated branding to 5zn
+// Version: 2.0 - Updated branding to addicted
 
-console.log('🚀 Loading SznApp v2.0 - Updated branding to 5zn');
+console.log('🚀 Loading SznApp v2.0 - Updated branding to addicted');
 
 class SznApp {
     constructor() {
@@ -12,14 +12,14 @@ class SznApp {
         this.polymerCanvas = null;
         this.currentTab = 'photo';
         
-        // Инициализируем 5zn Store
+        // Инициализируем addicted Store
         this.store = window.sznStore;
         
         this.init();
     }
 
     init() {
-        console.log('SznApp with 5zn Logic initializing...');
+        console.log('SznApp with addicted Logic initializing...');
         this.setupEventListeners();
         this.setupCanvas();
         this.setupTabs();
@@ -28,7 +28,7 @@ class SznApp {
         this.checkAuthStatus();
         
         setTimeout(() => {
-            console.log('✅ SznApp with 5zn Logic initialized');
+            console.log('✅ SznApp with addicted Logic initialized');
             // Синхронизируем кнопки метрик после инициализации
             this.syncMetricButtons();
         }, 100);
@@ -37,19 +37,19 @@ class SznApp {
     setupCanvas() {
         const canvas = document.getElementById('route-canvas');
         if (canvas) {
-            // Инициализируем 5zn Canvas Component
+            // Инициализируем addicted Canvas Component
             this.polymerCanvas = new SznCanvasComponent(canvas, this.store);
             
             // Настраиваем обработчики для управления изображением
             this.setupImageManipulation();
             this.setupPhotoButtons();
             
-            console.log('✅ 5zn Canvas Component setup complete');
+            console.log('✅ addicted Canvas Component setup complete');
         }
     }
     
     updateCanvas() {
-        // 5zn Canvas автоматически обрабатывает resize
+        // addicted Canvas автоматически обрабатывает resize
         if (this.polymerCanvas) {
             this.polymerCanvas.render();
         }
@@ -68,7 +68,7 @@ class SznApp {
 
     async connectStrava() {
         const clientId = window.CONFIG?.STRAVA?.CLIENT_ID || 'YOUR_STRAVA_CLIENT_ID';
-        const redirectUri = window.CONFIG?.STRAVA?.REDIRECT_URI || `${window.location.origin}/oauth/`;
+        const redirectUri = window.CONFIG?.STRAVA?.REDIRECT_URI || `${window.location.origin}/route/oauth/`;
         const scope = window.CONFIG?.STRAVA?.SCOPE || 'read,activity:read_all';
         
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -147,7 +147,7 @@ class SznApp {
                     localStorage.removeItem('strava_token');
                     this.showError('Session expired. Please connect again');
                     setTimeout(() => {
-                        window.location.href = '/';
+                        window.location.href = '/route/';
                     }, 2000);
                     throw new Error('Unauthorized');
                 }
@@ -222,11 +222,11 @@ class SznApp {
         }
     }
 
-    // Новый метод рендеринга с использованием 5zn Store
+    // Новый метод рендеринга с использованием addicted Store
     renderWorkout() {
         if (!this.polymerCanvas || !this.currentWorkout) return;
         
-        console.log('🎨 Rendering workout with 5zn Store');
+        console.log('🎨 Rendering workout with addicted Store');
         
         // Устанавливаем активность в store (как в nextPoly)
         this.store.setActivity(this.currentWorkout);
@@ -237,7 +237,7 @@ class SznApp {
             this.polymerCanvas.setPolylineData(polylineData);
         }
         
-        console.log('✅ Workout rendered with 5zn Store');
+        console.log('✅ Workout rendered with addicted Store');
     }
 
     setupEventListeners() {
@@ -266,8 +266,8 @@ class SznApp {
         });
         
         // Logo click handler
-        document.querySelector('.nav-logo')?.addEventListener('click', () => {
-            window.location.href = '/landing.html';
+        document.querySelector('.nav-logo-text')?.addEventListener('click', () => {
+            window.location.href = '/route/landing.html';
         });
         
         // Nav buttons
@@ -1016,7 +1016,7 @@ class SznApp {
         
         if (navigator.share) {
             navigator.share({
-                title: '5zn Workout',
+                title: 'addicted Workout',
                 text: shareText,
                 url: window.location.href
             }).then(() => {
@@ -1054,7 +1054,7 @@ class SznApp {
             return;
         }
 
-        const filename = `5zn-workout-${new Date().toISOString().split('T')[0]}.png`;
+        const filename = `addicted-workout-${new Date().toISOString().split('T')[0]}.png`;
 
         // Safari/iOS fallback detection
         const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -1126,7 +1126,7 @@ class SznApp {
             // Create a temporary link element
             const link = document.createElement('a');
             link.href = url;
-            link.download = `5zn-workout-${new Date().toISOString().split('T')[0]}.png`;
+            link.download = `addicted-workout-${new Date().toISOString().split('T')[0]}.png`;
             
             // Trigger download first
             document.body.appendChild(link);
@@ -1196,7 +1196,7 @@ class SznApp {
 
 // Initialize app when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOM loaded, initializing SznApp with 5zn Logic');
+            console.log('DOM loaded, initializing SznApp with addicted Logic');
             const app = new SznApp();
             // Дополнительная подстройка после отрисовки DOM: ещё раз проставим размер канваса
             setTimeout(() => app.updateCanvas(), 0);
@@ -1221,6 +1221,6 @@ if (window.location.pathname.includes('/oauth/')) {
     if (code) {
         console.log('OAuth code received:', code);
         localStorage.setItem('strava_token', 'mock_token');
-        window.location.href = '/';
+        window.location.href = '/rout/';
     }
 }
