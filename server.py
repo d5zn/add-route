@@ -303,14 +303,33 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                         self.wfile.write(html_content.encode('utf-8'))
                         return
                     else:
-                        # Handle static files (CSS, JS, images, etc.) - use parent class method
-                        # Temporarily modify path to serve from root
-                        original_path = self.path
-                        self.path = '/' + file_path
-                        try:
-                            super().do_GET()
-                        finally:
-                            self.path = original_path
+                        # Handle static files (CSS, JS, images, etc.)
+                        # Determine MIME type
+                        mime_type = 'application/octet-stream'
+                        if file_path.endswith('.css'):
+                            mime_type = 'text/css'
+                        elif file_path.endswith('.js'):
+                            mime_type = 'application/javascript'
+                        elif file_path.endswith('.svg'):
+                            mime_type = 'image/svg+xml'
+                        elif file_path.endswith('.png'):
+                            mime_type = 'image/png'
+                        elif file_path.endswith('.jpg') or file_path.endswith('.jpeg'):
+                            mime_type = 'image/jpeg'
+                        elif file_path.endswith('.ico'):
+                            mime_type = 'image/x-icon'
+                        elif file_path.endswith('.json'):
+                            mime_type = 'application/json'
+                        
+                        # Read and serve file
+                        with open(file_path, 'rb') as f:
+                            file_content = f.read()
+                        
+                        self.send_response(200)
+                        self.send_header('Content-Type', mime_type)
+                        self.send_header('Content-Length', len(file_content))
+                        self.end_headers()
+                        self.wfile.write(file_content)
                         return
             except Exception as e:
                 print(f"❌ Error serving /route/ file: {e}")
