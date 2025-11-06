@@ -281,9 +281,13 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         # Handle /route/ paths for application files and static assets
         if self.path.startswith('/route/'):
             # Remove /route/ prefix and serve from root
-            file_path = self.path[7:]  # Remove '/route/'
+            # Also remove query parameters if present
+            path_without_query = self.path.split('?')[0]
+            file_path = path_without_query[7:]  # Remove '/route/'
             if not file_path:
                 file_path = 'index.html'
+            
+            print(f"🔍 Serving /route/ file: {file_path} (from {self.path})")
             
             try:
                 if os.path.exists(file_path):
@@ -330,9 +334,18 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                         self.send_header('Content-Length', len(file_content))
                         self.end_headers()
                         self.wfile.write(file_content)
+                        print(f"✅ Served /route/ file: {file_path}")
                         return
+                else:
+                    print(f"❌ File not found: {file_path} (from {self.path})")
+                    self.send_error(404, f'File Not Found: {file_path}')
+                    return
             except Exception as e:
-                print(f"❌ Error serving /route/ file: {e}")
+                print(f"❌ Error serving /route/ file {file_path}: {e}")
+                import traceback
+                traceback.print_exc()
+                self.send_error(500, 'Internal Server Error')
+                return
         
         # Handle static HTML files (information.html, etc.) on root
         if self.path.endswith('.html') and not self.path.startswith('/route/'):
