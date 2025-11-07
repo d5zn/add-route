@@ -20,6 +20,7 @@ class SznStore {
             },
             imagesArray: [],
             image: "", // Пустая строка - будет использоваться дефолтный bg.jpeg
+            club: localStorage.getItem('selected_club') || 'not-in-paris', // Выбранный клуб
             RideData: [{
                 dataName: "Distance",
                 data: "132km",
@@ -95,6 +96,11 @@ class SznStore {
     
     setImage(image) {
         this.state.image = image;
+        this.notifyListeners();
+    }
+    
+    setClub(clubId) {
+        this.state.club = clubId || 'not-in-paris';
         this.notifyListeners();
     }
     

@@ -1,0 +1,15 @@
+<svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- H shape (top part) - две вертикальные полосы, соединенные горизонтальной -->
+  <rect x="14" y="8" width="10" height="22" fill="white"/>
+  <rect x="48" y="8" width="10" height="22" fill="white"/>
+  <rect x="14" y="17" width="44" height="10" fill="white"/>
+  
+  <!-- Inverted U shape (bottom part) - перевернутая U-форма (арка) с плавной непрерывной кривой -->
+  <!-- Левая вертикальная часть (плоский конец, параллельный правому) -->
+  <rect x="14" y="38" width="10" height="18" fill="white"/>
+  <!-- Правая вертикальная часть (плоский конец, параллельный левому) -->
+  <rect x="48" y="38" width="10" height="18" fill="white"/>
+  <!-- Арка (плавная непрерывная изогнутая верхняя часть, соединяющая вертикальные части) -->
+  <path d="M 24 38 Q 36 28 48 38" stroke="white" stroke-width="10" stroke-linecap="round" fill="none"/>
+</svg>
+

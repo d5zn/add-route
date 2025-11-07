@@ -181,28 +181,84 @@ class SznCanvasComponent {
             this.render();
         };
         
-        // Загружаем логотип
-        this.logoImage.crossOrigin = "anonymous";
-        this.logoImage.src = "/logo_NIP.svg";
-        this.logoImage.onload = () => {
-            this.render();
-        };
-        this.logoImage.onerror = () => {
-            console.warn('⚠️ Logo image failed to load: /logo_NIP.svg');
-            // Используем fallback логотип
-            this.logoImage.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNzIiIGhlaWdodD0iNzIiIHZpZXdCb3g9IjAgMCA3MiA3MiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNzIiIGhlaWdodD0iNzIiIHJ4PSI4IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHRleHQgeD0iMzYiIHk9IjQ1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSJib2xkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMDAwMDAwIj41Wk48L3RleHQ+Cjwvc3ZnPg==";
-        };
+        // Загружаем логотип в зависимости от клуба
+        this.updateLogo();
+    }
+    
+    updateLogo() {
+        const state = this.store.getState();
+        const club = state.club || 'not-in-paris';
+        
+        // Определяем путь к логотипу в зависимости от клуба
+        const logoPath = club === 'hedonism' ? '/logo_HEDONISM.svg' : '/logo_NIP.svg';
+        
+        // Получаем текущий путь из src (убираем origin для сравнения)
+        let currentPath = '';
+        if (this.logoImage.src) {
+            try {
+                const url = new URL(this.logoImage.src);
+                currentPath = url.pathname;
+            } catch (e) {
+                currentPath = this.logoImage.src.replace(window.location.origin, '');
+            }
+        }
+        
+        // Проверяем, нужно ли загружать новый логотип
+        // Если логотип еще не загружен, или путь изменился, или это первая загрузка
+        const isInitialLoad = !this.logoImage.src || this.logoImage.src === '' || this.logoImage.src === window.location.href;
+        const pathChanged = currentPath !== logoPath && !currentPath.includes('data:image');
+        const needsUpdate = isInitialLoad || (!this.logoImage.complete && !currentPath.includes('data:image')) || pathChanged;
+        
+        if (needsUpdate) {
+            // Создаем новый объект Image для загрузки
+            const newLogoImage = new Image();
+            newLogoImage.crossOrigin = "anonymous";
+            newLogoImage.src = logoPath;
+            
+            newLogoImage.onload = () => {
+                // Заменяем старый логотип на новый
+                this.logoImage = newLogoImage;
+                this.render();
+                console.log(`✅ Logo loaded: ${logoPath} for club: ${club}`);
+            };
+            
+            newLogoImage.onerror = () => {
+                console.warn(`⚠️ Logo image failed to load: ${logoPath}`);
+                // Используем fallback логотип только если это не fallback уже
+                if (!this.logoImage.src || !this.logoImage.src.includes('data:image')) {
+                    this.logoImage.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNzIiIGhlaWdodD0iNzIiIHZpZXdCb3g9IjAgMCA3MiA3MiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNzIiIGhlaWdodD0iNzIiIHJ4PSI4IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHRleHQgeD0iMzYiIHk9IjQ1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSJib2xkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMDAwMDAwIj41Wk48L3RleHQ+Cjwvc3ZnPg==";
+                    this.render();
+                }
+            };
+        }
     }
     
     subscribeToStore() {
         let previousImage = this.store.getState().image;
+        let previousClub = this.store.getState().club;
         
         this.store.subscribe((state) => {
+            let shouldRender = false;
+            
             // Проверяем, изменилось ли фоновое изображение
             if (state.image !== previousImage) {
                 console.log('🖼️ Background image changed, reloading...');
                 previousImage = state.image;
-                this.loadImages();
+                this.loadBackgroundImage(state.image);
+                shouldRender = true;
+            }
+            
+            // Проверяем, изменился ли клуб (для смены логотипа)
+            if (state.club !== previousClub) {
+                console.log('🏢 Club changed, updating logo...');
+                previousClub = state.club;
+                this.updateLogo();
+                shouldRender = true;
+            }
+            
+            // Рендерим только если что-то изменилось
+            if (shouldRender) {
+                // Рендер произойдет после загрузки изображения/логотипа
             } else {
                 this.render();
             }
@@ -473,13 +529,18 @@ class SznCanvasComponent {
         const spacingFromLogo = 20 * scale;
         const maxWidth = logoX - leftMargin - spacingFromLogo;
         
-        this.wrapText(state.title, leftMargin, titleTop, maxWidth, titleFontSize);
+        // Рисуем название и получаем конечную позицию Y
+        const titleLineHeight = titleFontSize * 1.2; // Межстрочный интервал для названия
+        const titleEndY = this.wrapText(state.title, leftMargin, titleTop, maxWidth, titleFontSize);
         
         // Подзаголовок (дата) - 32px
         const subtitleFontSize = Math.floor(32 * scale);
         this.ctx.font = `${subtitleFontSize}px Inter, sans-serif`;
         
-        const subtitleY = titleTop + titleFontSize; // Убрали отступ между названием и датой
+        // Размещаем дату сразу после названия (используем реальную конечную позицию названия)
+        // Добавляем небольшой отступ между названием и датой
+        const spacingBetweenTitleAndDate = 8 * scale; // Отступ 8px
+        const subtitleY = titleEndY + spacingBetweenTitleAndDate; // Дата сдвигается вниз в зависимости от количества строк названия
         this.wrapText(state.date.toUpperCase(), leftMargin, subtitleY, maxWidth, subtitleFontSize);
         
         this.ctx.restore();
@@ -625,22 +686,32 @@ class SznCanvasComponent {
         const centerLat = (bounds.maxLat + bounds.minLat) / 2;
         const centerLng = (bounds.maxLng + bounds.minLng) / 2;
         
-        // Создаем линейный градиент, центрированный по области маршрута
-        const gradientCenterX = routeLeft + routeWidth / 2;
-        const gradientTop = routeTop;
-        const gradientBottom = routeBottom;
+        // Определяем цвет маршрута в зависимости от выбранного клуба
+        const club = state.club || 'not-in-paris';
+        let strokeStyle;
         
-        const gradient = this.ctx.createLinearGradient(
-            gradientCenterX, gradientTop, 
-            gradientCenterX, gradientBottom
-        );
-        gradient.addColorStop(0, '#2A3587');
-        gradient.addColorStop(0.495192, 'white');
-        gradient.addColorStop(1, '#CF2228');
+        if (club === 'hedonism') {
+            // HEDONISM - сплошной цвет #FF6CC9
+            strokeStyle = '#FF6CC9';
+        } else {
+            // NOT IN PARIS - градиент (текущий)
+            const gradientCenterX = routeLeft + routeWidth / 2;
+            const gradientTop = routeTop;
+            const gradientBottom = routeBottom;
+            
+            const gradient = this.ctx.createLinearGradient(
+                gradientCenterX, gradientTop, 
+                gradientCenterX, gradientBottom
+            );
+            gradient.addColorStop(0, '#2A3587');
+            gradient.addColorStop(0.495192, 'white');
+            gradient.addColorStop(1, '#CF2228');
+            strokeStyle = gradient;
+        }
         
-        // Рисуем маршрут с градиентом
+        // Рисуем маршрут
         this.ctx.save();
-        this.ctx.strokeStyle = gradient;
+        this.ctx.strokeStyle = strokeStyle;
         this.ctx.lineWidth = 8 * scale;
         this.ctx.lineCap = 'round';
         this.ctx.lineJoin = 'round';

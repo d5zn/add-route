@@ -54,7 +54,7 @@ def init_database():
     try:
         cursor = conn.cursor()
         
-        # Read schema from file
+        # Read main schema from file
         schema_file = 'database_schema.sql'
         if os.path.exists(schema_file):
             with open(schema_file, 'r') as f:
@@ -63,17 +63,56 @@ def init_database():
                 for statement in schema_sql.split(';'):
                     statement = statement.strip()
                     if statement and not statement.startswith('--'):
-                        cursor.execute(statement)
+                        try:
+                            cursor.execute(statement)
+                        except Exception as e:
+                            print(f"⚠️ Schema statement error (may be expected): {e}")
             
             conn.commit()
-            print("✅ Database initialized successfully")
+            print("✅ Main database schema initialized")
+        
+        # Read analytics schema from file
+        analytics_file = 'analytics_schema.sql'
+        if os.path.exists(analytics_file):
+            with open(analytics_file, 'r') as f:
+                analytics_sql = f.read()
+                # Split by semicolon and execute each statement
+                for statement in analytics_sql.split(';'):
+                    statement = statement.strip()
+                    if statement and not statement.startswith('--'):
+                        try:
+                            cursor.execute(statement)
+                        except Exception as e:
+                            print(f"⚠️ Analytics statement error (may be expected): {e}")
+            
+            conn.commit()
+            print("✅ Analytics schema initialized")
         else:
-            print("⚠️ database_schema.sql not found, skipping DB init")
+            print("⚠️ analytics_schema.sql not found, skipping analytics init")
+            
     except Exception as e:
         print(f"⚠️ Database init error: {e}")
         conn.rollback()
     finally:
         conn.close()
+
+def get_client_ip(handler):
+    """Get client IP address from request headers"""
+    # Check for forwarded headers (proxy/load balancer)
+    forwarded_for = handler.headers.get('X-Forwarded-For')
+    if forwarded_for:
+        return forwarded_for.split(',')[0].strip()
+    
+    real_ip = handler.headers.get('X-Real-IP')
+    if real_ip:
+        return real_ip
+    
+    # Fallback to direct connection
+    return handler.client_address[0] if handler.client_address else 'unknown'
+
+def get_user_agent(handler):
+    """Get user agent from request headers"""
+    return handler.headers.get('User-Agent', 'unknown')
 
 def inject_config(html_content):
     """Inject configuration from environment variables into HTML"""
@@ -451,6 +490,9 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         # OAuth token exchange (works for both root and /route/)
         if self.path == '/api/strava/token' or self.path == '/route/api/strava/token':
             self.handle_token_exchange()
+        # Analytics API endpoints
+        elif self.path.startswith('/api/analytics/') or self.path.startswith('/route/api/analytics/'):
+            self.handle_analytics_api()
         else:
             self.send_error(404, 'Not Found')
 
@@ -608,6 +650,30 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 
                 conn.commit()
                 print(f"✅ Saved athlete to DB: {athlete_data.get('firstname')} {athlete_data.get('lastname')}")
+                
+                # Record auth event (unique connection per day)
+                try:
+                    athlete_id = athlete_data.get('id')
+                    ip_address = get_client_ip(self)
+                    user_agent = get_user_agent(self)
+                    
+                    # Insert auth event (using unique index for one connection per day)
+                    cursor.execute("""
+                        INSERT INTO auth_events (athlete_id, ip_address, user_agent)
+                        SELECT %s, %s, %s
+                        WHERE NOT EXISTS (
+                            SELECT 1 FROM auth_events 
+                            WHERE athlete_id = %s 
+                            AND DATE(created_at) = CURRENT_DATE
+                        )
+                    """, (athlete_id, ip_address, user_agent, athlete_id))
+                    
+                    conn.commit()
+                    print(f"✅ Recorded auth event for athlete: {athlete_id}")
+                except Exception as e:
+                    print(f"⚠️ Error recording auth event: {e}")
+                    # Continue even if analytics fails
+                
                 conn.close()
                 return
                 
@@ -653,6 +719,174 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             
         except Exception as e:
             print(f"⚠️ Error saving athlete data: {e}")
+    
+    def record_download(self, athlete_id=None, club_id=None):
+        """Record a download event"""
+        conn = get_db_connection()
+        if not conn:
+            return
+        
+        try:
+            cursor = conn.cursor()
+            ip_address = get_client_ip(self)
+            user_agent = get_user_agent(self)
+            
+            cursor.execute("""
+                INSERT INTO downloads (athlete_id, club_id, ip_address, user_agent, file_format)
+                VALUES (%s, %s, %s, %s, 'png')
+            """, (athlete_id, club_id, ip_address, user_agent))
+            
+            conn.commit()
+            print(f"✅ Recorded download: athlete_id={athlete_id}, club_id={club_id}")
+        except Exception as e:
+            print(f"⚠️ Error recording download: {e}")
+            conn.rollback()
+        finally:
+            conn.close()
+    
+    def record_visit(self, session_id, athlete_id=None, club_id=None, page_path='/'):
+        """Record a visit event"""
+        conn = get_db_connection()
+        if not conn:
+            return
+        
+        try:
+            cursor = conn.cursor()
+            ip_address = get_client_ip(self)
+            user_agent = get_user_agent(self)
+            
+            cursor.execute("""
+                INSERT INTO visits (session_id, athlete_id, club_id, ip_address, user_agent, page_path)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (session_id, athlete_id, club_id, ip_address, user_agent, page_path))
+            
+            conn.commit()
+        except Exception as e:
+            print(f"⚠️ Error recording visit: {e}")
+            conn.rollback()
+        finally:
+            conn.close()
+    
+    def handle_analytics_api(self):
+        """Handle analytics API endpoints"""
+        if self.command == 'POST':
+            # Record events (download, visit)
+            try:
+                content_length = int(self.headers.get('Content-Length', 0))
+                post_data = self.rfile.read(content_length)
+                data = json.loads(post_data.decode('utf-8'))
+                
+                event_type = data.get('type')
+                
+                if event_type == 'download':
+                    athlete_id = data.get('athlete_id')
+                    club_id = data.get('club_id')
+                    self.record_download(athlete_id, club_id)
+                    
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'status': 'ok'}).encode())
+                    return
+                    
+                elif event_type == 'visit':
+                    session_id = data.get('session_id')
+                    athlete_id = data.get('athlete_id')
+                    club_id = data.get('club_id')
+                    page_path = data.get('page_path', '/')
+                    self.record_visit(session_id, athlete_id, club_id, page_path)
+                    
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'status': 'ok'}).encode())
+                    return
+                    
+            except json.JSONDecodeError:
+                self.send_error(400, 'Invalid JSON')
+                return
+                    
+            except Exception as e:
+                print(f"❌ Error handling analytics API: {e}")
+                self.send_error(500, f'Internal server error: {str(e)}')
+                return
+                
+        elif self.command == 'GET':
+            # Get statistics
+            try:
+                conn = get_db_connection()
+                if not conn:
+                    self.send_error(503, 'Database not available')
+                    return
+                
+                cursor = conn.cursor(cursor_factory=RealDictCursor)
+                # Handle both /api/analytics/ and /route/api/analytics/
+                path = self.path
+                if path.startswith('/route/api/analytics/'):
+                    path = path.replace('/route/api/analytics/', '')
+                elif path.startswith('/api/analytics/'):
+                    path = path.replace('/api/analytics/', '')
+                
+                if path == 'stats' or path == '':
+                    # Get all statistics
+                    stats = {}
+                    
+                    # Unique connections
+                    cursor.execute("SELECT COUNT(DISTINCT athlete_id) as count FROM auth_events")
+                    stats['unique_connections'] = cursor.fetchone()['count']
+                    
+                    # Total downloads
+                    cursor.execute("SELECT COUNT(*) as count FROM downloads")
+                    stats['total_downloads'] = cursor.fetchone()['count']
+                    
+                    # Downloads by club
+                    cursor.execute("""
+                        SELECT club_id, COUNT(*) as count 
+                        FROM downloads 
+                        GROUP BY club_id
+                    """)
+                    stats['downloads_by_club'] = {row['club_id']: row['count'] for row in cursor.fetchall()}
+                    
+                    # Visits by day
+                    cursor.execute("""
+                        SELECT DATE(created_at) as date, COUNT(*) as total, COUNT(DISTINCT session_id) as unique_visits
+                        FROM visits
+                        GROUP BY DATE(created_at)
+                        ORDER BY date DESC
+                        LIMIT 30
+                    """)
+                    stats['visits_by_day'] = [dict(row) for row in cursor.fetchall()]
+                    
+                    # Visits by month
+                    cursor.execute("""
+                        SELECT DATE_TRUNC('month', created_at) as month, COUNT(*) as total, COUNT(DISTINCT session_id) as unique_visits
+                        FROM visits
+                        GROUP BY DATE_TRUNC('month', created_at)
+                        ORDER BY month DESC
+                        LIMIT 12
+                    """)
+                    stats['visits_by_month'] = [dict(row) for row in cursor.fetchall()]
+                    
+                    conn.close()
+                    
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(stats, default=str).encode())
+                    return
+                
+                conn.close()
+                self.send_error(404, 'Not Found')
+                
+            except Exception as e:
+                print(f"❌ Error getting statistics: {e}")
+                import traceback
+                traceback.print_exc()
+                self.send_error(500, f'Internal server error: {str(e)}')
+                return
+                
+        else:
+            self.send_error(405, 'Method Not Allowed')
     
     def handle_admin_users(self):
         """Handle admin users API endpoint from database or JSON fallback"""
