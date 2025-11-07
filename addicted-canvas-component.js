@@ -167,22 +167,26 @@ class SznCanvasComponent {
         const state = this.store.getState();
         
         // Загружаем фоновое изображение (пользовательское или дефолтное)
+        this.loadBackgroundImage(state.image);
+        
+        // Загружаем логотип в зависимости от клуба
+        this.updateLogo();
+    }
+
+    loadBackgroundImage(imageSrc) {
+        const source = imageSrc || '/bg.jpeg'; // Используем bg.jpeg как дефолт
         this.imageLoading = true;
-        const imageSrc = state.image || '/bg.jpeg'; // Используем bg.jpeg как дефолт
         this.backgroundImage.crossOrigin = "anonymous";
-        this.backgroundImage.src = imageSrc;
+        this.backgroundImage.src = source;
         this.backgroundImage.onload = () => {
             this.imageLoading = false;
             this.render();
         };
         this.backgroundImage.onerror = () => {
-            console.warn('⚠️ Background image failed to load:', imageSrc);
+            console.warn('⚠️ Background image failed to load:', source);
             this.imageLoading = false;
             this.render();
         };
-        
-        // Загружаем логотип в зависимости от клуба
-        this.updateLogo();
     }
     
     updateLogo() {
