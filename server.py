@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""
-Production HTTP server for addicted Web
-Enhanced security features: CSP, CORS, Rate Limiting
-"""
+# Production HTTP server for addicted Web
+# Enhanced security features: CSP, CORS, Rate Limiting
+
+print("🚀 Bootstrapping addicted server...", flush=True)
 
 import http.server
 import socketserver
