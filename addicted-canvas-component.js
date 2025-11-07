@@ -43,42 +43,6 @@ class SznCanvasComponent {
         this.loadFonts();
         this.loadImages();
         this.subscribeToStore();
-        
-        // Принудительное обновление при загрузке страницы (важно для Safari iOS)
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                setTimeout(() => {
-                    this.setupCanvas();
-                    this.render();
-                }, 100);
-            });
-        } else {
-            // Страница уже загружена
-            setTimeout(() => {
-                this.setupCanvas();
-                this.render();
-            }, 100);
-        }
-        
-        // Обработчик изменения видимости страницы (важно для Safari iOS)
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-                // Страница снова видима, обновляем canvas
-                setTimeout(() => {
-                    this.setupCanvas();
-                    this.render();
-                }, 100);
-            }
-        });
-        
-        // Обработчик для случаев, когда страница возвращается в фокус
-        window.addEventListener('focus', () => {
-            setTimeout(() => {
-                this.setupCanvas();
-                this.render();
-            }, 100);
-        });
-        
         console.log('✅ SznCanvasComponent initialized');
     }
     
@@ -106,17 +70,8 @@ class SznCanvasComponent {
             previewPaddingV = (parseFloat(cs.paddingTop || '0') || 0) + (parseFloat(cs.paddingBottom || '0') || 0);
         }
 
-        // Для Safari iOS: используем visualViewport если доступен для более точных размеров
-        let viewportHeight, viewportWidth;
-        if (window.visualViewport) {
-            // visualViewport предоставляет точные размеры видимой области в Safari iOS
-            viewportHeight = window.visualViewport.height;
-            viewportWidth = window.visualViewport.width;
-        } else {
-            // Fallback для браузеров без visualViewport
-            viewportHeight = window.innerHeight - navbarHeight - panelHeight - previewPaddingV;
-            viewportWidth = window.innerWidth;
-        }
+        const viewportHeight = window.innerHeight - navbarHeight - panelHeight - previewPaddingV;
+        const viewportWidth = previewArea?.clientWidth || window.innerWidth;
         
         // Используем viewport размеры если контейнер пустой
         let containerWidth = viewportWidth;
@@ -125,25 +80,9 @@ class SznCanvasComponent {
         // Пытаемся получить реальные размеры контейнера
         try {
             const container = this.canvas.parentElement;
-            if (container) {
-                // Используем getBoundingClientRect для получения актуальных размеров
-                const rect = container.getBoundingClientRect();
-                if (rect.width > 0 && rect.height > 0) {
-                    containerWidth = rect.width;
-                    containerHeight = rect.height;
-                } else if (container.clientWidth > 0 && container.clientHeight > 0) {
-                    containerWidth = container.clientWidth;
-                    containerHeight = container.clientHeight;
-                }
-            }
-            
-            // Если previewArea доступен, используем его размеры
-            if (previewArea) {
-                const previewRect = previewArea.getBoundingClientRect();
-                if (previewRect.width > 0 && previewRect.height > 0) {
-                    containerWidth = previewRect.width;
-                    containerHeight = previewRect.height;
-                }
+            if (container && container.clientWidth > 0 && container.clientHeight > 0) {
+                containerWidth = container.clientWidth;
+                containerHeight = container.clientHeight;
             }
         } catch (e) {
             console.warn('⚠️ Could not get container size, using viewport:', e);
@@ -187,47 +126,12 @@ class SznCanvasComponent {
         // Обработчик resize (добавляем только один раз)
         if (!this._resizeHandlerAdded) {
             this._resizeHandlerAdded = true;
-            
-            // Основной обработчик resize
-            const handleResize = () => {
-                // Используем requestAnimationFrame для более плавного обновления
-                requestAnimationFrame(() => {
-                    setTimeout(() => {
-                        this.setupCanvas();
-                        this.render();
-                    }, 50);
-                });
-            };
-            
-            window.addEventListener('resize', handleResize);
-            
-            // Для Safari iOS: используем visualViewport API если доступен
-            if (window.visualViewport) {
-                window.visualViewport.addEventListener('resize', handleResize);
-                window.visualViewport.addEventListener('scroll', handleResize);
-            }
-            
-            // Обработчик изменения ориентации (важно для мобильных устройств)
-            window.addEventListener('orientationchange', () => {
-                // Задержка для корректного определения новых размеров после изменения ориентации
+            window.addEventListener('resize', () => {
                 setTimeout(() => {
                     this.setupCanvas();
                     this.render();
-                }, 200);
+                }, 100);
             });
-            
-            // ResizeObserver для более точного отслеживания изменений размера контейнера
-            try {
-                const container = this.canvas.parentElement;
-                if (container && window.ResizeObserver) {
-                    this._resizeObserver = new ResizeObserver((entries) => {
-                        handleResize();
-                    });
-                    this._resizeObserver.observe(container);
-                }
-            } catch (e) {
-                console.warn('⚠️ ResizeObserver not available:', e);
-            }
         }
     }
     
