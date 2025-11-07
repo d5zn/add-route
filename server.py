@@ -197,6 +197,9 @@ def execute_sql_statements(cursor, sql_content, description="SQL"):
         cleaned_lines.append(line)
     sql_content = '\n'.join(cleaned_lines)
     
+    # Удаляем блоковые комментарии /* ... */ которые могут содержать MySQL синтаксис
+    sql_content = re.sub(r'/\*.*?\*/', '', sql_content, flags=re.DOTALL)
+    
     # Split SQL into statements
     # Strategy: split by semicolon, but be smart about multi-line statements
     # Most SQL statements end with semicolon on their own line or followed by newline
