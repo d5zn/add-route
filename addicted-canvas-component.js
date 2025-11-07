@@ -456,6 +456,10 @@ class SznCanvasComponent {
         // Позиция заголовка с учетом безопасной зоны сверху
         const titleTop = safeArea.top * scale;
         
+        // Вычисляем позицию логотипа (как в renderLogo)
+        const logoSize = 180 * scale;
+        const logoX = width - logoSize - (safeArea.right * scale);
+        
         // Заголовок - 52px
         const titleFontSize = Math.floor(52 * scale);
         this.ctx.save();
@@ -463,9 +467,11 @@ class SznCanvasComponent {
         this.ctx.font = `bold ${titleFontSize}px Inter, sans-serif`;
         this.ctx.textAlign = 'left';
         
-        // Используем безопасные зоны слева и справа
+        // Используем безопасные зоны слева
         const leftMargin = safeArea.left * scale;
-        const maxWidth = width - (safeArea.left + safeArea.right) * scale;
+        // Ограничиваем ширину до логотипа минус 20px
+        const spacingFromLogo = 20 * scale;
+        const maxWidth = logoX - leftMargin - spacingFromLogo;
         
         this.wrapText(state.title, leftMargin, titleTop, maxWidth, titleFontSize);
         
@@ -725,24 +731,53 @@ class SznCanvasComponent {
     
     // Утилита для переноса текста как в nextPoly
     wrapText(text, x, y, maxWidth, fontSize) {
+        if (!text) return y;
+        
         const words = text.split(' ');
         let line = '';
         let lineY = y;
+        const lineHeight = fontSize * 1.2; // Межстрочный интервал
         
         for (let i = 0; i < words.length; i++) {
-            const testLine = line + words[i] + ' ';
+            const testLine = line + words[i] + (i < words.length - 1 ? ' ' : '');
             const metrics = this.ctx.measureText(testLine);
             
             if (metrics.width > maxWidth && i > 0) {
-                this.ctx.fillText(line, x, lineY);
-                line = words[i] + ' ';
-                lineY += fontSize;
+                // Текущая строка не помещается, отрисовываем предыдущую
+                this.ctx.fillText(line.trim(), x, lineY);
+                line = '';
+                lineY += lineHeight;
+                
+                // Проверяем, помещается ли само слово на новой строке
+                const wordMetrics = this.ctx.measureText(words[i]);
+                if (wordMetrics.width > maxWidth) {
+                    // Слово слишком длинное, разбиваем по символам
+                    let charLine = '';
+                    for (let char of words[i]) {
+                        const charTestLine = charLine + char;
+                        const charMetrics = this.ctx.measureText(charTestLine);
+                        if (charMetrics.width > maxWidth && charLine.length > 0) {
+                            this.ctx.fillText(charLine, x, lineY);
+                            charLine = char;
+                            lineY += lineHeight;
+                        } else {
+                            charLine = charTestLine;
+                        }
+                    }
+                    line = charLine + (i < words.length - 1 ? ' ' : '');
+                } else {
+                    line = words[i] + (i < words.length - 1 ? ' ' : '');
+                }
             } else {
                 line = testLine;
             }
         }
         
-        this.ctx.fillText(line, x, lineY);
+        // Отрисовываем оставшуюся строку
+        if (line.trim()) {
+            this.ctx.fillText(line.trim(), x, lineY);
+        }
+        
         return lineY;
     }
     

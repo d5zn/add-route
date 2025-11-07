@@ -957,7 +957,7 @@ class SznApp {
                         </div>
                     </div>
                     <div style="margin-left: 10px; padding: 8px 12px; background: #333; color: #fff; border-radius: 4px; font-size: 12px; white-space: nowrap; opacity: 0.7;">
-                        Click to apply
+                        Apply
                     </div>
                 </div>
             </div>

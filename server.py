@@ -326,74 +326,85 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             if not file_path:
                 file_path = 'index.html'
             elif file_path.endswith('/'):
-                # If path ends with /, try index.html in that directory
+                # If path ends with /, remove trailing slash
                 file_path = file_path.rstrip('/')
-                if os.path.isdir(file_path):
-                    file_path = os.path.join(file_path, 'index.html')
             
             print(f"🔍 Serving /route/ file: {file_path} (from {self.path})")
             
             try:
-                # Check if it's a directory
+                # Check if it's a directory FIRST, before any file operations
                 if os.path.isdir(file_path):
                     # If directory, try to serve index.html from it
                     index_path = os.path.join(file_path, 'index.html')
-                    if os.path.exists(index_path):
+                    if os.path.exists(index_path) and os.path.isfile(index_path):
                         file_path = index_path
                     else:
                         print(f"❌ Directory without index.html: {file_path}")
                         self.send_error(404, f'Directory Not Found: {file_path}')
                         return
                 
-                if os.path.exists(file_path) and os.path.isfile(file_path):
-                    # Handle HTML files
-                    if file_path.endswith('.html'):
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            html_content = f.read()
-                        
-                        # Inject config for index.html
-                        if file_path == 'index.html' or file_path.endswith('/index.html'):
-                            html_content = inject_config(html_content)
-                        
-                        self.send_response(200)
-                        self.send_header('Content-Type', 'text/html; charset=utf-8')
-                        self.send_header('Content-Length', len(html_content.encode('utf-8')))
-                        self.end_headers()
-                        self.wfile.write(html_content.encode('utf-8'))
-                        return
-                    else:
-                        # Handle static files (CSS, JS, images, etc.)
-                        # Determine MIME type
-                        mime_type = 'application/octet-stream'
-                        if file_path.endswith('.css'):
-                            mime_type = 'text/css'
-                        elif file_path.endswith('.js'):
-                            mime_type = 'application/javascript'
-                        elif file_path.endswith('.svg'):
-                            mime_type = 'image/svg+xml'
-                        elif file_path.endswith('.png'):
-                            mime_type = 'image/png'
-                        elif file_path.endswith('.jpg') or file_path.endswith('.jpeg'):
-                            mime_type = 'image/jpeg'
-                        elif file_path.endswith('.ico'):
-                            mime_type = 'image/x-icon'
-                        elif file_path.endswith('.json'):
-                            mime_type = 'application/json'
-                        
-                        # Read and serve file
-                        with open(file_path, 'rb') as f:
-                            file_content = f.read()
-                        
-                        self.send_response(200)
-                        self.send_header('Content-Type', mime_type)
-                        self.send_header('Content-Length', len(file_content))
-                        self.end_headers()
-                        self.wfile.write(file_content)
-                        print(f"✅ Served /route/ file: {file_path}")
-                        return
-                else:
-                    print(f"❌ File not found: {file_path} (from {self.path})")
+                # Now verify it's a file (not a directory)
+                if not os.path.exists(file_path):
+                    print(f"❌ Path does not exist: {file_path} (from {self.path})")
                     self.send_error(404, f'File Not Found: {file_path}')
+                    return
+                
+                if os.path.isdir(file_path):
+                    # Should not happen after directory check above, but double-check
+                    print(f"❌ Still a directory after processing: {file_path}")
+                    self.send_error(404, f'Directory Not Found: {file_path}')
+                    return
+                
+                if not os.path.isfile(file_path):
+                    print(f"❌ Not a file: {file_path} (from {self.path})")
+                    self.send_error(404, f'File Not Found: {file_path}')
+                    return
+                
+                # Now we know it's a file, serve it
+                # Handle HTML files
+                if file_path.endswith('.html'):
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        html_content = f.read()
+                    
+                    # Inject config for index.html
+                    if file_path == 'index.html' or file_path.endswith('/index.html') or file_path.endswith('\\index.html'):
+                        html_content = inject_config(html_content)
+                    
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'text/html; charset=utf-8')
+                    self.send_header('Content-Length', len(html_content.encode('utf-8')))
+                    self.end_headers()
+                    self.wfile.write(html_content.encode('utf-8'))
+                    return
+                else:
+                    # Handle static files (CSS, JS, images, etc.)
+                    # Determine MIME type
+                    mime_type = 'application/octet-stream'
+                    if file_path.endswith('.css'):
+                        mime_type = 'text/css'
+                    elif file_path.endswith('.js'):
+                        mime_type = 'application/javascript'
+                    elif file_path.endswith('.svg'):
+                        mime_type = 'image/svg+xml'
+                    elif file_path.endswith('.png'):
+                        mime_type = 'image/png'
+                    elif file_path.endswith('.jpg') or file_path.endswith('.jpeg'):
+                        mime_type = 'image/jpeg'
+                    elif file_path.endswith('.ico'):
+                        mime_type = 'image/x-icon'
+                    elif file_path.endswith('.json'):
+                        mime_type = 'application/json'
+                    
+                    # Read and serve file (we already verified it's a file above)
+                    with open(file_path, 'rb') as f:
+                        file_content = f.read()
+                    
+                    self.send_response(200)
+                    self.send_header('Content-Type', mime_type)
+                    self.send_header('Content-Length', len(file_content))
+                    self.end_headers()
+                    self.wfile.write(file_content)
+                    print(f"✅ Served /route/ file: {file_path}")
                     return
             except Exception as e:
                 print(f"❌ Error serving /route/ file {file_path}: {e}")
