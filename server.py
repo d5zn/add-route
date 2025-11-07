@@ -78,23 +78,37 @@ def init_database():
 def inject_config(html_content):
     """Inject configuration from environment variables into HTML"""
     try:
-        from server_config import STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET
-        print(f"✅ Loaded config from server_config.py")
-    except ImportError:
-        STRAVA_CLIENT_ID = os.environ.get('STRAVA_CLIENT_ID', 'YOUR_STRAVA_CLIENT_ID')
-        STRAVA_CLIENT_SECRET = os.environ.get('STRAVA_CLIENT_SECRET', 'YOUR_STRAVA_CLIENT_SECRET')
-        print(f"⚠️ Using env vars: CLIENT_ID={STRAVA_CLIENT_ID[:10]}..." if STRAVA_CLIENT_ID != 'YOUR_STRAVA_CLIENT_ID' else "❌ No Strava credentials found!")
-    
-    is_production = os.environ.get('ENVIRONMENT') == 'production'
-    is_railway = os.environ.get('RAILWAY_ENVIRONMENT') is not None
-    
-    # Generate config script
-    config_script = f"""
+        try:
+            from server_config import STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET
+            print(f"✅ Loaded config from server_config.py")
+        except ImportError:
+            STRAVA_CLIENT_ID = os.environ.get('STRAVA_CLIENT_ID', 'YOUR_STRAVA_CLIENT_ID')
+            STRAVA_CLIENT_SECRET = os.environ.get('STRAVA_CLIENT_SECRET', 'YOUR_STRAVA_CLIENT_SECRET')
+            if STRAVA_CLIENT_ID != 'YOUR_STRAVA_CLIENT_ID':
+                display_id = STRAVA_CLIENT_ID[:10] + '...' if len(STRAVA_CLIENT_ID) > 10 else STRAVA_CLIENT_ID
+                print(f"⚠️ Using env vars: CLIENT_ID={display_id}")
+            else:
+                print("❌ No Strava credentials found!")
+        
+        # Ensure we have valid string values
+        STRAVA_CLIENT_ID = str(STRAVA_CLIENT_ID) if STRAVA_CLIENT_ID else 'YOUR_STRAVA_CLIENT_ID'
+        STRAVA_CLIENT_SECRET = str(STRAVA_CLIENT_SECRET) if STRAVA_CLIENT_SECRET else 'YOUR_STRAVA_CLIENT_SECRET'
+        
+        # Escape JavaScript string values to prevent injection
+        import json
+        STRAVA_CLIENT_ID_JS = json.dumps(STRAVA_CLIENT_ID)
+        STRAVA_CLIENT_SECRET_JS = json.dumps(STRAVA_CLIENT_SECRET)
+        
+        is_production = os.environ.get('ENVIRONMENT') == 'production'
+        is_railway = os.environ.get('RAILWAY_ENVIRONMENT') is not None
+        
+        # Generate config script
+        config_script = f"""
 <script>
 window.CONFIG = {{
     STRAVA: {{
-        CLIENT_ID: '{STRAVA_CLIENT_ID}',
-        CLIENT_SECRET: '{STRAVA_CLIENT_SECRET}',
+        CLIENT_ID: {STRAVA_CLIENT_ID_JS},
+        CLIENT_SECRET: {STRAVA_CLIENT_SECRET_JS},
         REDIRECT_URI: window.location.origin + '/route/oauth/',
         SCOPE: 'read,activity:read_all',
         API_BASE_URL: 'https://www.strava.com/api/v3'
@@ -115,7 +129,7 @@ if (CONFIG.ENV.DEBUG) {{
     console.log('🔧 addicted Web Configuration:', CONFIG);
 }}
 
-console.log('🔑 Config injected - CLIENT_ID:', window.CONFIG.STRAVA.CLIENT_ID.substring(0, 10) + '...');
+console.log('🔑 Config injected - CLIENT_ID:', window.CONFIG.STRAVA.CLIENT_ID ? (window.CONFIG.STRAVA.CLIENT_ID.length > 10 ? window.CONFIG.STRAVA.CLIENT_ID.substring(0, 10) + '...' : window.CONFIG.STRAVA.CLIENT_ID) : 'NOT SET');
 </script>
 """
     
@@ -149,9 +163,15 @@ console.log('🔑 Config injected - CLIENT_ID:', window.CONFIG.STRAVA.CLIENT_ID.
             config_script,
             html_content
         )
-    
-    print(f"✅ Config injected into HTML")
-    return html_content
+        
+        print(f"✅ Config injected into HTML")
+        return html_content
+    except Exception as e:
+        print(f"❌ Error injecting config: {e}")
+        import traceback
+        traceback.print_exc()
+        # Return original HTML if config injection fails
+        return html_content
 
 class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     # Rate limiting storage
