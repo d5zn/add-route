@@ -35,6 +35,9 @@ def get_db_connection():
         print("⚠️ DATABASE_URL not set")
         return None
     
+    # Удаляем лишние пробелы/переводы строк (Railway может добавить перевод строки)
+    database_url = database_url.strip()
+    
     # Railway использует postgresql://, но psycopg2 хочет postgres://
     if database_url.startswith('postgresql://'):
         database_url = database_url.replace('postgresql://', 'postgres://', 1)
@@ -43,6 +46,7 @@ def get_db_connection():
     railway_internal_url = os.environ.get('DATABASE_PRIVATE_URL')
     if railway_internal_url:
         # Используем внутренний URL если доступен
+        railway_internal_url = railway_internal_url.strip()
         if railway_internal_url.startswith('postgresql://'):
             railway_internal_url = railway_internal_url.replace('postgresql://', 'postgres://', 1)
         database_url = railway_internal_url
