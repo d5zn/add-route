@@ -325,18 +325,34 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             file_path = path_without_query[7:]  # Remove '/route/'
             if not file_path:
                 file_path = 'index.html'
+            elif file_path.endswith('/'):
+                # If path ends with /, try index.html in that directory
+                file_path = file_path.rstrip('/')
+                if os.path.isdir(file_path):
+                    file_path = os.path.join(file_path, 'index.html')
             
             print(f"🔍 Serving /route/ file: {file_path} (from {self.path})")
             
             try:
-                if os.path.exists(file_path):
+                # Check if it's a directory
+                if os.path.isdir(file_path):
+                    # If directory, try to serve index.html from it
+                    index_path = os.path.join(file_path, 'index.html')
+                    if os.path.exists(index_path):
+                        file_path = index_path
+                    else:
+                        print(f"❌ Directory without index.html: {file_path}")
+                        self.send_error(404, f'Directory Not Found: {file_path}')
+                        return
+                
+                if os.path.exists(file_path) and os.path.isfile(file_path):
                     # Handle HTML files
                     if file_path.endswith('.html'):
                         with open(file_path, 'r', encoding='utf-8') as f:
                             html_content = f.read()
                         
                         # Inject config for index.html
-                        if file_path == 'index.html':
+                        if file_path == 'index.html' or file_path.endswith('/index.html'):
                             html_content = inject_config(html_content)
                         
                         self.send_response(200)
