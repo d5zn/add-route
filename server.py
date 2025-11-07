@@ -120,9 +120,20 @@ console.log('🔑 Config injected - CLIENT_ID:', window.CONFIG.STRAVA.CLIENT_ID.
 """
     
     # Replace config.js script tag with inline config (try multiple versions)
-    if '<script src="config.js?v=4"></script>' in html_content:
+    # Check for /route/config.js paths first
+    if '<script src="/route/config.js?v=4"></script>' in html_content:
+        html_content = html_content.replace(
+            '<script src="/route/config.js?v=4"></script>',
+            config_script
+        )
+    elif '<script src="config.js?v=4"></script>' in html_content:
         html_content = html_content.replace(
             '<script src="config.js?v=4"></script>',
+            config_script
+        )
+    elif '<script src="/route/config.js?v=3"></script>' in html_content:
+        html_content = html_content.replace(
+            '<script src="/route/config.js?v=3"></script>',
             config_script
         )
     elif '<script src="config.js?v=3"></script>' in html_content:
@@ -131,10 +142,10 @@ console.log('🔑 Config injected - CLIENT_ID:', window.CONFIG.STRAVA.CLIENT_ID.
             config_script
         )
     else:
-        # Fallback - replace any config.js
+        # Fallback - replace any config.js (with or without /route/)
         import re
         html_content = re.sub(
-            r'<script src="config\.js\?v=\d+"></script>',
+            r'<script src="(/route/)?config\.js\?v=\d+"></script>',
             config_script,
             html_content
         )
