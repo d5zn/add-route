@@ -275,10 +275,14 @@ class SznCanvasComponent {
             this.config.canvasWidth = 1080;
             this.config.canvasHeight = 1350;
             this.config.aspectRatio = '4/5';
+            // Отступ сверху для 4:5
+            this.config.safeArea.top = 160;
         } else if (ratio === '9:16') {
             this.config.canvasWidth = 1080;
             this.config.canvasHeight = 1920;
             this.config.aspectRatio = '9/16';
+            // Отступ сверху для 9:16
+            this.config.safeArea.top = 250;
         }
         
         // Обновляем размеры канваса
@@ -288,7 +292,7 @@ class SznCanvasComponent {
         // Пересчитываем размеры отображения
         this.setupCanvas();
         
-        console.log(`🔄 Canvas config updated: ${this.config.canvasWidth}x${this.config.canvasHeight} (${ratio})`);
+        console.log(`🔄 Canvas config updated: ${this.config.canvasWidth}x${this.config.canvasHeight} (${ratio}), safeArea.top: ${this.config.safeArea.top}`);
     }
     
     render() {

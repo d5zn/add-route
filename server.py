@@ -146,6 +146,84 @@ def ensure_analytics_schema(cursor):
         except Exception as e:
             print(f"⚠️ Analytics ensure error: {e}\n   Statement: {statement.strip()[:80]}...")
 
+def execute_sql_statements(cursor, sql_content, description="SQL"):
+    """Execute SQL statements, handling each one separately to avoid transaction issues"""
+    import re
+    
+    # Remove single-line comments (-- ...) but preserve line structure
+    lines = sql_content.split('\n')
+    cleaned_lines = []
+    for line in lines:
+        comment_pos = line.find('--')
+        if comment_pos >= 0:
+            line = line[:comment_pos]
+        cleaned_lines.append(line)
+    sql_content = '\n'.join(cleaned_lines)
+    
+    # Split SQL into statements
+    # Strategy: split by semicolon, but be smart about multi-line statements
+    # Most SQL statements end with semicolon on their own line or followed by newline
+    statements = []
+    
+    # First, try to split by semicolon followed by newline or end of string
+    # This handles most cases correctly
+    parts = re.split(r';\s*\n', sql_content)
+    
+    # Also handle semicolon at end of string
+    if sql_content.strip().endswith(';'):
+        # Last part might not have been split properly
+        if parts and not parts[-1].strip().endswith(';'):
+            parts[-1] = parts[-1].rstrip() + ';'
+    
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+        
+        # Remove trailing semicolon if present
+        if part.endswith(';'):
+            part = part[:-1].strip()
+        
+        if not part:
+            continue
+        
+        statements.append(part)
+    
+    # If splitting by semicolon+newline didn't work well, fall back to simple split
+    if not statements or len(statements) < 2:
+        statements = [s.strip() for s in sql_content.split(';') if s.strip()]
+        # Remove trailing semicolons
+        statements = [s[:-1].strip() if s.endswith(';') else s.strip() for s in statements]
+        statements = [s for s in statements if s]
+    
+    # Execute each statement separately (autocommit is already enabled)
+    executed = 0
+    errors = 0
+    
+    for statement in statements:
+        statement = statement.strip()
+        if not statement:
+            continue
+        
+        try:
+            cursor.execute(statement)
+            executed += 1
+        except Exception as e:
+            error_msg = str(e).lower()
+            # Check if error is acceptable (object already exists)
+            if 'already exists' in error_msg or \
+               ('duplicate' in error_msg and 'key' in error_msg) or \
+               ('relation' in error_msg and 'already exists' in error_msg):
+                executed += 1  # Count as successful
+            else:
+                errors += 1
+                print(f"⚠️ {description} error: {e}")
+                # Show preview of problematic statement (first line)
+                first_line = statement.split('\n')[0][:100]
+                print(f"   First line: {first_line}...")
+    
+    return executed, errors
+
 def init_database():
     """Initialize database with schema"""
     conn = get_db_connection()
@@ -154,53 +232,52 @@ def init_database():
         return
     
     try:
+        # Set autocommit mode to avoid transaction issues
+        conn.autocommit = True
         cursor = conn.cursor()
         
         # Read main schema from file
         schema_file = 'database_schema.sql'
         if os.path.exists(schema_file):
-            with open(schema_file, 'r') as f:
+            with open(schema_file, 'r', encoding='utf-8') as f:
                 schema_sql = f.read()
-                # Split by semicolon and execute each statement
-                for statement in schema_sql.split(';'):
-                    statement = statement.strip()
-                    if statement and not statement.startswith('--'):
-                        try:
-                            cursor.execute(statement)
-                        except Exception as e:
-                            print(f"⚠️ Schema statement error (may be expected): {e}")
-            
-            conn.commit()
-            print("✅ Main database schema initialized")
+                executed, errors = execute_sql_statements(cursor, schema_sql, "Main schema")
+                print(f"✅ Main database schema: {executed} statements executed, {errors} errors")
+        else:
+            print("⚠️ database_schema.sql not found")
         
         # Read analytics schema from file
         analytics_file = 'analytics_schema.sql'
         if os.path.exists(analytics_file):
-            with open(analytics_file, 'r') as f:
+            with open(analytics_file, 'r', encoding='utf-8') as f:
                 analytics_sql = f.read()
-                # Split by semicolon and execute each statement
-                for statement in analytics_sql.split(';'):
-                    statement = statement.strip()
-                    if statement and not statement.startswith('--'):
-                        try:
-                            cursor.execute(statement)
-                        except Exception as e:
-                            print(f"⚠️ Analytics statement error (may be expected): {e}")
-            
-            conn.commit()
-            print("✅ Analytics schema initialized")
+                # Remove FOREIGN KEY constraints that might fail if athletes table doesn't exist yet
+                # Use regex to handle multi-line FK constraints
+                import re
+                analytics_sql_no_fk = re.sub(
+                    r',\s*FOREIGN\s+KEY\s+\(athlete_id\)\s+REFERENCES\s+athletes\(athlete_id\)\s+ON\s+DELETE\s+SET\s+NULL',
+                    '',
+                    analytics_sql,
+                    flags=re.IGNORECASE | re.MULTILINE
+                )
+                executed, errors = execute_sql_statements(cursor, analytics_sql_no_fk, "Analytics schema")
+                print(f"✅ Analytics schema: {executed} statements executed, {errors} errors")
         else:
-            print("⚠️ analytics_schema.sql not found, skipping analytics init")
-            
-        # Ensure analytics tables exist (redundant safety)
-        ensure_analytics_schema(cursor)
-        conn.commit()
+            print("⚠️ analytics_schema.sql not found, using fallback")
+            # Fallback: use ensure_analytics_schema
+            try:
+                ensure_analytics_schema(cursor)
+                print("✅ Analytics schema (fallback method)")
+            except Exception as e:
+                print(f"⚠️ Analytics fallback error: {e}")
             
     except Exception as e:
-        print(f"⚠️ Database init error: {e}")
-        conn.rollback()
+        print(f"❌ Database init error: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 def get_client_ip(handler):
     """Get client IP address from request headers"""

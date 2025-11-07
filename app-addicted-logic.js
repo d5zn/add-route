@@ -88,6 +88,7 @@ class SznApp {
         this.setupCanvas();
         this.setupTabs();
         this.initializeRatio();
+        this.initializeClub();
         this.setupMobileOptimizations();
         this.checkAuthStatus();
         
@@ -340,10 +341,6 @@ class SznApp {
         });
         
         // Nav buttons
-        document.getElementById('club-selector-btn')?.addEventListener('click', () => {
-            this.openClubSelector();
-        });
-        
         document.getElementById('workout-selector-btn')?.addEventListener('click', () => {
             this.openWorkoutSelector();
         });
@@ -358,19 +355,8 @@ class SznApp {
         });
         
         // Modal close
-        document.getElementById('close-club-selector')?.addEventListener('click', () => {
-            this.closeClubSelector();
-        });
-        
         document.getElementById('close-workout-selector')?.addEventListener('click', () => {
             this.closeWorkoutSelector();
-        });
-        
-        // Close modal on backdrop click
-        document.getElementById('club-selector-modal')?.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal-backdrop')) {
-                this.closeClubSelector();
-            }
         });
         
         document.getElementById('workout-selector-modal')?.addEventListener('click', (e) => {
@@ -412,10 +398,30 @@ class SznApp {
                 this.setRatio(ratio);
             });
         });
+
+        // Club buttons
+        document.querySelectorAll('.club-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const clubId = e.target.dataset.club;
+                this.selectClub(clubId);
+            });
+        });
     }
 
     initializeRatio() {
         this.setRatio('9:16');
+    }
+
+    initializeClub() {
+        // Устанавливаем активную кнопку клуба на основе текущего выбора
+        const currentClub = this.currentClub || 'not-in-paris';
+        document.querySelectorAll('.club-btn').forEach(btn => {
+            if (btn.dataset.club === currentClub) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
     }
 
     setupMobileOptimizations() {
@@ -1010,77 +1016,24 @@ class SznApp {
         }
     }
 
-    // Club Selector Modal
-    openClubSelector() {
-        const modal = document.getElementById('club-selector-modal');
-        if (modal) {
-            modal.classList.remove('hidden');
-            this.populateClubList();
-        }
-    }
-
-    closeClubSelector() {
-        const modal = document.getElementById('club-selector-modal');
-        if (modal) {
-            modal.classList.add('hidden');
-        }
-    }
-
-    populateClubList() {
-        const clubList = document.getElementById('club-list');
-        if (!clubList || !this.clubs.length) {
-            clubList.innerHTML = '<p style="text-align: center; opacity: 0.7;">No clubs available</p>';
-            return;
-        }
-
-        clubList.innerHTML = this.clubs.map((club) => `
-            <div class="workout-item ${club.id === this.currentClub ? 'active' : ''}" 
-                 data-club-id="${club.id}">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
-                    <div style="flex: 1;">
-                        <h4 class="workout-name">${club.name}</h4>
-                    </div>
-                    <div style="margin-left: 10px; padding: 8px 12px; background: #333; color: #fff; border-radius: 4px; font-size: 12px; white-space: nowrap; opacity: 0.7;">
-                        Apply
-                    </div>
-                </div>
-            </div>
-        `).join('');
-
-        clubList.querySelectorAll('.workout-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                console.log('🖱️ Club item clicked:', e.target);
-                const clubId = item.dataset.clubId;
-                console.log('🆔 Club ID:', clubId);
-                this.selectClub(clubId);
-            });
-            
-            // Добавляем визуальную обратную связь
-            item.addEventListener('mousedown', () => {
-                item.style.backgroundColor = '#333333';
-            });
-            
-            item.addEventListener('mouseup', () => {
-                item.style.backgroundColor = '';
-            });
-            
-            item.addEventListener('mouseleave', () => {
-                item.style.backgroundColor = '';
-            });
-        });
-    }
-
     selectClub(clubId) {
         console.log('🏢 Selecting club:', clubId);
         this.currentClub = clubId;
         localStorage.setItem('selected_club', clubId);
         
+        // Обновляем активные кнопки
+        document.querySelectorAll('.club-btn').forEach(btn => {
+            if (btn.dataset.club === clubId) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        
         // Обновляем клуб в store
         if (this.store) {
             this.store.setClub(clubId);
         }
-        
-        this.closeClubSelector();
         
         // Перерисовываем canvas с новым цветом маршрута
         if (this.polymerCanvas) {
@@ -1088,9 +1041,6 @@ class SznApp {
         }
         
         console.log('✅ Club selected:', clubId);
-        
-        // Обновляем список клубов для отображения активного состояния
-        this.populateClubList();
     }
 
     populateWorkoutList() {

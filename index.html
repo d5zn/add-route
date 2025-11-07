@@ -24,14 +24,6 @@
                     <span class="nav-logo-text">addicted</span>
                 </div>
                 <div class="nav-center">
-                    <button class="nav-btn" title="Select Club" id="club-selector-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-users">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                        </svg>
-                    </button>
                     <button class="nav-btn" title="Select Workout" id="workout-selector-btn">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-activity">
                             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
@@ -146,6 +138,7 @@
             <div class="tab-nav">
                 <button class="tab-btn active" data-tab="photo">PHOTO</button>
                 <button class="tab-btn" data-tab="data">DATA</button>
+                <button class="tab-btn" data-tab="club">CLUB</button>
                 <button class="tab-btn" data-tab="ratio">RATIO</button>
             </div>
 
@@ -164,6 +157,14 @@
                         <button class="data-btn active" data-metric="elevation">Elevation</button>
                         <button class="data-btn active" data-metric="time">Time</button>
                         <button class="data-btn active" data-metric="speed">Speed/Avg</button>
+                    </div>
+                </div>
+
+                <!-- Club Tab -->
+                <div id="club-tab" class="tab-panel">
+                    <div class="club-controls">
+                        <button class="club-btn active" data-club="not-in-paris">NOT IN PARIS</button>
+                        <button class="club-btn" data-club="hedonism">HEDONISM</button>
                     </div>
                 </div>
 
@@ -189,35 +190,9 @@
                         <button class="position-btn" data-position="bottom-right">Bottom Right</button>
                     </div>
                 </div>
-
-                <!-- Ratio Tab -->
-                <div id="ratio-tab" class="tab-panel" style="display: none;">
-                    <div class="ratio-controls">
-                        <button class="ratio-btn active" data-ratio="9:16">9:16</button>
-                        <button class="ratio-btn" data-ratio="4:5">4:5</button>
-                    </div>
-                </div>
             </div>
         </div>
     </div> <!-- Close mobile-container -->
-
-    <!-- Club Selector Modal -->
-    <div id="club-selector-modal" class="modal hidden">
-        <div class="modal-backdrop"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Select Club</h3>
-                <div style="display: flex; align-items: center; gap: 16px;">
-                    <button class="modal-close" id="close-club-selector">&times;</button>
-                </div>
-            </div>
-            <div class="modal-body">
-                <div id="club-list" class="workout-list">
-                    <!-- Clubs will be populated here -->
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Workout Selector Modal -->
     <div id="workout-selector-modal" class="modal hidden">
@@ -245,8 +220,8 @@
 <script src="/route/config.js?v=4"></script>
 <script src="/route/polyline.js?v=5"></script>
 <script src="/route/addicted-store.js?v=16"></script>
-<script src="/route/addicted-canvas-component.js?v=35"></script>
-<script src="/route/app-addicted-logic.js?v=26"></script>
+<script src="/route/addicted-canvas-component.js?v=36"></script>
+<script src="/route/app-addicted-logic.js?v=27"></script>
     
     <!-- Debug script -->
     <script>

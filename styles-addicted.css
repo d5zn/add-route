@@ -457,7 +457,8 @@ html, body {
 }
 
 /* Ratio Controls */
-.ratio-controls {
+.ratio-controls,
+.club-controls {
     display: flex;
     gap: 8px;
     justify-content: stretch;
@@ -488,6 +489,34 @@ html, body {
 }
 
 .ratio-btn:hover {
+    background: #ffffff;
+    color: #000000;
+}
+
+/* Club Buttons */
+.club-btn {
+    height: 36px;
+    padding: 0 16px;
+    background: transparent;
+    border: 1px solid #ffffff;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 300;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex: 1; /* Растягиваем кнопки на ширину контейнера */
+}
+
+.club-btn.active {
+    background: #ffffff;
+    color: #000000;
+}
+
+.club-btn:hover {
     background: #ffffff;
     color: #000000;
 }
