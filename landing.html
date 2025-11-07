@@ -110,9 +110,7 @@
             color: #000000;
             text-decoration: none;
             font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
+            display: inline-block;
             transition: all 0.2s ease;
             margin-top: 20px;
             padding: 12px 24px;
@@ -124,11 +122,6 @@
         .back-link:hover {
             background: #f0f0f0;
             transform: translateY(-1px);
-        }
-
-        .back-arrow {
-            width: 16px;
-            height: 16px;
         }
 
         @media (max-width: 768px) {
@@ -158,10 +151,6 @@
         <p class="subtitle">Creative Solutions Laboratory</p>
         
         <a href="/route/" class="back-link">
-            <svg class="back-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M19 12H5"/>
-                <path d="M12 19l-7-7 7-7"/>
-            </svg>
             Go to App
         </a>
         
