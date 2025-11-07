@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>addicted - Creative Solutions Laboratory</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1">
+    <link rel="icon" type="image/x-icon" href="favicon.ico?v=1">
+    <link rel="shortcut icon" href="favicon.ico?v=1">
+    <link rel="apple-touch-icon" href="favicon.ico?v=1">
     <style>
         * {
             margin: 0;
@@ -88,7 +91,7 @@
 
         .email-link {
             display: inline-block;
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.08);
             color: #ffffff;
             text-decoration: none;
             padding: 12px 24px;
@@ -99,26 +102,28 @@
         }
 
         .email-link:hover {
-            background: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.12);
             transform: translateY(-1px);
         }
 
         .back-link {
-            color: #ffffff;
+            color: #000000;
             text-decoration: none;
             font-size: 14px;
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            transition: opacity 0.2s ease;
+            transition: all 0.2s ease;
             margin-top: 20px;
             padding: 12px 24px;
             border-radius: 8px;
-            background: transparent;
+            background: #ffffff;
+            font-weight: 500;
         }
 
         .back-link:hover {
-            opacity: 0.8;
+            background: #f0f0f0;
+            transform: translateY(-1px);
         }
 
         .back-arrow {
