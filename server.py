@@ -132,37 +132,37 @@ if (CONFIG.ENV.DEBUG) {{
 console.log('🔑 Config injected - CLIENT_ID:', window.CONFIG.STRAVA.CLIENT_ID ? (window.CONFIG.STRAVA.CLIENT_ID.length > 10 ? window.CONFIG.STRAVA.CLIENT_ID.substring(0, 10) + '...' : window.CONFIG.STRAVA.CLIENT_ID) : 'NOT SET');
 </script>
 """
-    
-    # Replace config.js script tag with inline config (try multiple versions)
-    # Check for /route/config.js paths first
-    if '<script src="/route/config.js?v=4"></script>' in html_content:
-        html_content = html_content.replace(
-            '<script src="/route/config.js?v=4"></script>',
-            config_script
-        )
-    elif '<script src="config.js?v=4"></script>' in html_content:
-        html_content = html_content.replace(
-            '<script src="config.js?v=4"></script>',
-            config_script
-        )
-    elif '<script src="/route/config.js?v=3"></script>' in html_content:
-        html_content = html_content.replace(
-            '<script src="/route/config.js?v=3"></script>',
-            config_script
-        )
-    elif '<script src="config.js?v=3"></script>' in html_content:
-        html_content = html_content.replace(
-            '<script src="config.js?v=3"></script>',
-            config_script
-        )
-    else:
-        # Fallback - replace any config.js (with or without /route/)
-        import re
-        html_content = re.sub(
-            r'<script src="(/route/)?config\.js\?v=\d+"></script>',
-            config_script,
-            html_content
-        )
+        
+        # Replace config.js script tag with inline config (try multiple versions)
+        # Check for /route/config.js paths first
+        if '<script src="/route/config.js?v=4"></script>' in html_content:
+            html_content = html_content.replace(
+                '<script src="/route/config.js?v=4"></script>',
+                config_script
+            )
+        elif '<script src="config.js?v=4"></script>' in html_content:
+            html_content = html_content.replace(
+                '<script src="config.js?v=4"></script>',
+                config_script
+            )
+        elif '<script src="/route/config.js?v=3"></script>' in html_content:
+            html_content = html_content.replace(
+                '<script src="/route/config.js?v=3"></script>',
+                config_script
+            )
+        elif '<script src="config.js?v=3"></script>' in html_content:
+            html_content = html_content.replace(
+                '<script src="config.js?v=3"></script>',
+                config_script
+            )
+        else:
+            # Fallback - replace any config.js (with or without /route/)
+            import re
+            html_content = re.sub(
+                r'<script src="(/route/)?config\.js\?v=\d+"></script>',
+                config_script,
+                html_content
+            )
         
         print(f"✅ Config injected into HTML")
         return html_content
@@ -243,6 +243,14 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         """Handle GET requests with rate limiting"""
+        # Health check endpoint (skip rate limiting)
+        if self.path == '/health' or self.path == '/healthcheck':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(b'{"status":"ok"}')
+            return
+        
         # Rate limiting check
         if not self.check_rate_limit():
             self.send_error(429, 'Too Many Requests')
@@ -714,9 +722,13 @@ def main():
     # Change to the directory containing the web files
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     
-    # Initialize database
+    # Initialize database (non-blocking)
     print("🔧 Initializing database...")
-    init_database()
+    try:
+        init_database()
+    except Exception as e:
+        print(f"⚠️ Database initialization error (non-fatal): {e}")
+        print("🔄 Continuing with JSON fallback...")
     
     Handler = ProductionHTTPRequestHandler
     
