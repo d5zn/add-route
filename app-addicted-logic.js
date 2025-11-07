@@ -1181,8 +1181,19 @@ class SznApp {
         const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
+        const canUseFileShare = (() => {
+            if (typeof navigator === 'undefined') return false;
+            if (!navigator.canShare || !navigator.share) return false;
+            try {
+                const testFile = new File([""], "test.png", { type: "image/png" });
+                return navigator.canShare({ files: [testFile] });
+            } catch (e) {
+                return false;
+            }
+        })();
+
         // Prefer toBlob to avoid data URL size limits and improve compatibility
-        if (canvas.toBlob && !(isSafari && isIOS)) {
+        if (canvas.toBlob) {
             canvas.toBlob((blob) => {
                 if (!blob) {
                     // Fallback to data URL if blob creation failed
@@ -1196,30 +1207,72 @@ class SznApp {
                     return;
                 }
 
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                setTimeout(() => URL.revokeObjectURL(url), 1000);
-                console.log('📥 Canvas downloaded via blob URL');
+                // Try Web Share API with files (iOS/Android modern browsers)
+                if (canUseFileShare) {
+                    try {
+                        const file = new File([blob], filename, { type: 'image/png' });
+                        const shareData = {
+                            files: [file],
+                            title: 'addicted route',
+                            text: 'Route preview from addicted.design'
+                        };
+                        navigator.share(shareData)
+                            .then(() => console.log('📤 Canvas shared via Web Share API'))
+                            .catch((shareError) => {
+                                if (shareError?.name === 'AbortError') {
+                                    console.log('ℹ️ Share cancelled by user');
+                                } else {
+                                    console.warn('⚠️ Share failed, fallback to download:', shareError);
+                                    this.triggerBlobDownload(blob, filename);
+                                }
+                            });
+                        return;
+                    } catch (err) {
+                        console.warn('⚠️ Web Share not available, fallback to download:', err);
+                        // proceed to default download
+                    }
+                }
+
+                // For Safari/iOS fallback to opening data URL in new tab to allow "Save Image"
+                if (isSafari || isIOS) {
+                    const dataUrl = canvas.toDataURL('image/png');
+                    this.triggerDataUrlDownload(dataUrl, filename, true);
+                    return;
+                }
+
+                this.triggerBlobDownload(blob, filename);
             }, 'image/png', 0.95);
         } else {
-            // Safari/iOS often blocks programmatic downloads of blob URLs
-            // Use data URL which opens in a new tab allowing user to save
+            // Safari/iOS often blocks programmatic downloads of blob URLs or toBlob not supported
             const dataUrl = canvas.toDataURL('image/png');
+            this.triggerDataUrlDownload(dataUrl, filename, isSafari || isIOS);
+        }
+    }
+
+    triggerBlobDownload(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        console.log('📥 Canvas downloaded via blob URL');
+    }
+
+    triggerDataUrlDownload(dataUrl, filename, openInNewTab = false) {
+        if (openInNewTab) {
+            window.open(dataUrl, '_blank', 'noopener');
+        } else {
             const link = document.createElement('a');
             link.download = filename;
             link.href = dataUrl;
-            // Some Safari versions require target _blank
-            link.target = '_blank';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            console.log('📥 Canvas downloaded via Safari/iOS data URL');
         }
+        console.log('📥 Canvas downloaded via data URL fallback');
     }
     
     shareToInstagram() {
