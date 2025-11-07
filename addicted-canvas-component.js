@@ -190,7 +190,7 @@ class SznCanvasComponent {
         const club = state.club || 'not-in-paris';
         
         // Определяем путь к логотипу в зависимости от клуба
-        const logoPath = club === 'hedonism' ? '/logo_HEDONISM.svg' : '/logo_NIP.svg';
+        const logoPath = club === 'hedonism' ? '/logo_HC.png' : '/logo_NIP.svg';
         
         // Получаем текущий путь из src (убираем origin для сравнения)
         let currentPath = '';
@@ -540,7 +540,7 @@ class SznCanvasComponent {
         // Размещаем дату сразу после названия (используем реальную конечную позицию названия)
         // Добавляем небольшой отступ между названием и датой
         const spacingBetweenTitleAndDate = 8 * scale; // Отступ 8px
-        const subtitleY = titleEndY + spacingBetweenTitleAndDate; // Дата сдвигается вниз в зависимости от количества строк названия
+        const subtitleY = titleEndY + titleLineHeight + spacingBetweenTitleAndDate; // Дата сдвигается вниз с учетом высоты строки названия
         this.wrapText(state.date.toUpperCase(), leftMargin, subtitleY, maxWidth, subtitleFontSize);
         
         this.ctx.restore();
