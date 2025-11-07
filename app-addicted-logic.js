@@ -1177,9 +1177,12 @@ class SznApp {
 
         const filename = `addicted-workout-${new Date().toISOString().split('T')[0]}.png`;
 
-        // Safari/iOS fallback detection
-        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        // Device / browser detection
+        const userAgent = navigator.userAgent || '';
+        const isIOS = /iPad|iPhone|iPod/.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isAndroid = /Android/.test(userAgent);
+        const isMobile = /Mobi|Mobile|Android|iPhone|iPad|iPod/i.test(userAgent) || isIOS || isAndroid;
+        const isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
 
         const canUseFileShare = (() => {
             if (typeof navigator === 'undefined') return false;
@@ -1197,18 +1200,13 @@ class SznApp {
             canvas.toBlob((blob) => {
                 if (!blob) {
                     // Fallback to data URL if blob creation failed
-                    const link = document.createElement('a');
-                    link.download = filename;
-                    link.href = canvas.toDataURL('image/png');
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    console.log('📥 Canvas downloaded via data URL fallback');
+                    const dataUrlFallback = canvas.toDataURL('image/png');
+                    this.triggerDataUrlDownload(dataUrlFallback, filename, isMobile && (isSafari || isIOS));
                     return;
                 }
 
                 // Try Web Share API with files (iOS/Android modern browsers)
-                if (canUseFileShare) {
+                if (isMobile && canUseFileShare) {
                     try {
                         const file = new File([blob], filename, { type: 'image/png' });
                         const shareData = {
@@ -1234,12 +1232,25 @@ class SznApp {
                 }
 
                 // For Safari/iOS fallback to opening data URL in new tab to allow "Save Image"
-                if (isSafari || isIOS) {
+                if (isMobile && (isSafari || isIOS)) {
                     const dataUrl = canvas.toDataURL('image/png');
                     this.triggerDataUrlDownload(dataUrl, filename, true);
                     return;
                 }
 
+                if (isMobile && isAndroid) {
+                    // Modern Chrome/Android handles direct download fine
+                    this.triggerBlobDownload(blob, filename);
+                    return;
+                }
+
+                if (!isMobile) {
+                    // Desktop experience: save directly to Downloads
+                    this.triggerBlobDownload(blob, filename);
+                    return;
+                }
+
+                // Generic mobile fallback
                 this.triggerBlobDownload(blob, filename);
             }, 'image/png', 0.95);
         } else {
