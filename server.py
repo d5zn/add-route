@@ -200,41 +200,78 @@ def execute_sql_statements(cursor, sql_content, description="SQL"):
     # Удаляем блоковые комментарии /* ... */ которые могут содержать MySQL синтаксис
     sql_content = re.sub(r'/\*.*?\*/', '', sql_content, flags=re.DOTALL)
     
-    # Split SQL into statements
-    # Strategy: split by semicolon, but be smart about multi-line statements
-    # Most SQL statements end with semicolon on their own line or followed by newline
+    # Split SQL into statements manually to support dollar-quoted functions
     statements = []
+    current = []
+    in_single_quote = False
+    in_double_quote = False
+    in_dollar_quote = False
+    dollar_tag = ''
+    i = 0
+    length = len(sql_content)
     
-    # First, try to split by semicolon followed by newline or end of string
-    # This handles most cases correctly
-    parts = re.split(r';\s*\n', sql_content)
-    
-    # Also handle semicolon at end of string
-    if sql_content.strip().endswith(';'):
-        # Last part might not have been split properly
-        if parts and not parts[-1].strip().endswith(';'):
-            parts[-1] = parts[-1].rstrip() + ';'
-    
-    for part in parts:
-        part = part.strip()
-        if not part:
+    while i < length:
+        char = sql_content[i]
+        next_chars = sql_content[i:]
+        
+        # Handle start/end of dollar-quoted string ($$ or $tag$)
+        if not in_single_quote and not in_double_quote:
+            if char == '$':
+                # Attempt to match dollar tag
+                match = re.match(r'\$[A-Za-z0-9_]*\$', sql_content[i:])
+                if match:
+                    tag = match.group(0)
+                    if not in_dollar_quote:
+                        in_dollar_quote = True
+                        dollar_tag = tag
+                    elif tag == dollar_tag:
+                        in_dollar_quote = False
+                        dollar_tag = ''
+                    current.append(tag)
+                    i += len(tag)
+                    continue
+        
+        # Handle single quote strings
+        if not in_double_quote and not in_dollar_quote and char == "'":
+            if not in_single_quote:
+                in_single_quote = True
+            else:
+                # Check for escaped quote (two single quotes)
+                if i + 1 < length and sql_content[i + 1] == "'":
+                    current.append("'" * 2)
+                    i += 2
+                    continue
+                in_single_quote = False
+            current.append(char)
+            i += 1
             continue
         
-        # Remove trailing semicolon if present
-        if part.endswith(';'):
-            part = part[:-1].strip()
-        
-        if not part:
+        # Handle double quote strings
+        if not in_single_quote and not in_dollar_quote and char == '"':
+            if not in_double_quote:
+                in_double_quote = True
+            else:
+                in_double_quote = False
+            current.append(char)
+            i += 1
             continue
         
-        statements.append(part)
+        # Statement delimiter ';' (when not inside quotes)
+        if char == ';' and not in_single_quote and not in_double_quote and not in_dollar_quote:
+            statement = ''.join(current).strip()
+            if statement:
+                statements.append(statement)
+            current = []
+            i += 1
+            continue
+        
+        current.append(char)
+        i += 1
     
-    # If splitting by semicolon+newline didn't work well, fall back to simple split
-    if not statements or len(statements) < 2:
-        statements = [s.strip() for s in sql_content.split(';') if s.strip()]
-        # Remove trailing semicolons
-        statements = [s[:-1].strip() if s.endswith(';') else s.strip() for s in statements]
-        statements = [s for s in statements if s]
+    # Append remaining statement
+    statement = ''.join(current).strip()
+    if statement:
+        statements.append(statement)
     
     # Execute each statement separately (autocommit is already enabled)
     executed = 0
