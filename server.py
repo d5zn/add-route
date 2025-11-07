@@ -273,6 +273,19 @@ def execute_sql_statements(cursor, sql_content, description="SQL"):
     if statement:
         statements.append(statement)
     
+    # Merge trailing fragments like "$$ language 'plpgsql'" with previous statement
+    merged_statements = []
+    for stmt in statements:
+        normalized = stmt.lstrip().lower()
+        if merged_statements and (
+            normalized.startswith('$$') or
+            normalized.startswith('language')
+        ):
+            merged_statements[-1] = merged_statements[-1].rstrip() + '\n' + stmt
+        else:
+            merged_statements.append(stmt)
+    statements = merged_statements
+    
     # Execute each statement separately (autocommit is already enabled)
     executed = 0
     errors = 0
