@@ -145,6 +145,12 @@ html, body {
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
     transition: height 0.3s ease-out, transform 0.3s ease-out;
+    /* Исправление для Safari iOS: принудительное масштабирование */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    /* Улучшение рендеринга в Safari iOS */
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
     /* Шашечки как в фоторедакторах - показываются только когда нет фона */
     background: 
         linear-gradient(45deg, #2a2a2a 25%, transparent 25%),
