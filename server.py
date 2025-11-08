@@ -52,39 +52,53 @@ def get_db_connection():
         database_url = railway_internal_url
         print("🔗 Using Railway internal database URL")
     
-    try:
-        # Добавляем таймауты подключения
-        # connect_timeout - максимальное время ожидания подключения в секундах
-        print(f"🔌 Attempting to connect to database...")
-        conn = psycopg2.connect(
-            database_url,
-            connect_timeout=10,  # 10 секунд на подключение
-            keepalives=1,  # Включить keepalive
-            keepalives_idle=30,  # Отправлять keepalive каждые 30 секунд
-            keepalives_interval=10,  # Интервал между keepalive пакетами
-            keepalives_count=3  # Количество попыток перед разрывом
-        )
-        print("✅ Database connection established")
-        return conn
-    except Exception as e:
-        error_type = type(e).__name__
-        error_msg = str(e).lower()
-        if 'operationalerror' in error_type or 'timeout' in error_msg or 'connection' in error_msg:
-            print(f"❌ Database connection error (Operational): {e}")
-        else:
-            print(f"❌ Database connection error: {e}")
-        print(f"   Error type: {error_type}")
-        print(f"   URL format: {'postgres://' if database_url.startswith('postgres://') else 'unknown'}")
-        # Показываем только хост, не весь URL с паролем
+    max_retries = int(os.environ.get('DATABASE_CONNECT_RETRIES', '3'))
+    base_delay = float(os.environ.get('DATABASE_CONNECT_DELAY', '1.5'))
+    
+    for attempt in range(1, max_retries + 1):
         try:
-            from urllib.parse import urlparse
-            parsed = urlparse(database_url)
-            print(f"   Host: {parsed.hostname}, Port: {parsed.port}, Database: {parsed.path}")
-        except Exception as parse_error:
-            print(f"   Could not parse URL: {parse_error}")
-        import traceback
-        traceback.print_exc()
-        return None
+            # Добавляем таймауты подключения
+            # connect_timeout - максимальное время ожидания подключения в секундах
+            print(f"🔌 Attempting to connect to database... (attempt {attempt}/{max_retries})")
+            conn = psycopg2.connect(
+                database_url,
+                connect_timeout=10,  # 10 секунд на подключение
+                keepalives=1,  # Включить keepalive
+                keepalives_idle=30,  # Отправлять keepalive каждые 30 секунд
+                keepalives_interval=10,  # Интервал между keepalive пакетами
+                keepalives_count=3  # Количество попыток перед разрывом
+            )
+            if attempt > 1:
+                print(f"✅ Database connection established after {attempt} attempts")
+            else:
+                print("✅ Database connection established")
+            return conn
+        except Exception as e:
+            error_type = type(e).__name__
+            error_msg = str(e).lower()
+            if 'operationalerror' in error_type or 'timeout' in error_msg or 'connection' in error_msg:
+                print(f"❌ Database connection error (Operational): {e}")
+            else:
+                print(f"❌ Database connection error: {e}")
+            print(f"   Error type: {error_type}")
+            print(f"   URL format: {'postgres://' if database_url.startswith('postgres://') else 'unknown'}")
+            # Показываем только хост, не весь URL с паролем
+            try:
+                from urllib.parse import urlparse
+                parsed = urlparse(database_url)
+                print(f"   Host: {parsed.hostname}, Port: {parsed.port}, Database: {parsed.path}")
+            except Exception as parse_error:
+                print(f"   Could not parse URL: {parse_error}")
+            
+            if attempt < max_retries:
+                delay = base_delay * attempt
+                print(f"⏳ Retrying database connection in {delay:.1f}s...")
+                time.sleep(delay)
+            else:
+                import traceback
+                traceback.print_exc()
+                print("⚠️ Exhausted all database connection attempts. Falling back.")
+    return None
 
 ANALYTICS_TABLE_STATEMENTS = [
     """
