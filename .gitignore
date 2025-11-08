@@ -75,3 +75,7 @@ athletes_data/
 # Temporary files
 *.tmp
 *.temp
+
+# Allow admin build artifacts to be committed
+!admin/dist/
+!admin/dist/**
