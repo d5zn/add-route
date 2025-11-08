@@ -14,6 +14,8 @@ from datetime import datetime
 from collections import defaultdict
 from urllib.parse import urlparse, parse_qs
 
+ADMIN_DIST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'admin', 'dist')
+
 # PostgreSQL support
 try:
     import psycopg2
@@ -586,6 +588,11 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(429, 'Too Many Requests')
             return
         
+        # Admin SPA under /route/admin
+        if self.path == '/route/admin' or self.path.startswith('/route/admin/'):
+            if self.serve_admin_app():
+                return
+
         # Admin API endpoint
         if self.path == '/api/admin/users':
             self.handle_admin_users()
@@ -1263,6 +1270,78 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         """Override to customize logging with timestamp"""
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print(f"📡 [{timestamp}] {format % args}")
+
+    def serve_admin_app(self):
+        """Serve files for the admin SPA located in admin/dist."""
+        if not os.path.exists(ADMIN_DIST_DIR):
+            print(f"⚠️ Admin bundle directory not found: {ADMIN_DIST_DIR}")
+            self.send_error(404, 'Admin bundle not deployed')
+            return True
+
+        path_without_query = self.path.split('?')[0]
+        rel_path = path_without_query[len('/route/admin'):]
+        if rel_path.startswith('/'):
+            rel_path = rel_path[1:]
+
+        if not rel_path:
+            rel_path = 'index.html'
+
+        candidate_path = os.path.join(ADMIN_DIST_DIR, rel_path)
+
+        if os.path.isdir(candidate_path):
+            candidate_path = os.path.join(candidate_path, 'index.html')
+
+        if not os.path.exists(candidate_path) or os.path.isdir(candidate_path):
+            # SPA fallback to index.html for unknown routes
+            candidate_path = os.path.join(ADMIN_DIST_DIR, 'index.html')
+
+        if not os.path.exists(candidate_path):
+            print(f"❌ Admin file not found even after fallback: {candidate_path}")
+            self.send_error(404, 'Admin file not found')
+            return True
+
+        try:
+            if candidate_path.endswith('.html'):
+                with open(candidate_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Length', len(content.encode('utf-8')))
+                self.end_headers()
+                self.wfile.write(content.encode('utf-8'))
+            else:
+                mime_type = 'application/octet-stream'
+                if candidate_path.endswith('.css'):
+                    mime_type = 'text/css'
+                elif candidate_path.endswith('.js'):
+                    mime_type = 'application/javascript'
+                elif candidate_path.endswith('.svg'):
+                    mime_type = 'image/svg+xml'
+                elif candidate_path.endswith('.png'):
+                    mime_type = 'image/png'
+                elif candidate_path.endswith('.jpg') or candidate_path.endswith('.jpeg'):
+                    mime_type = 'image/jpeg'
+                elif candidate_path.endswith('.ico'):
+                    mime_type = 'image/x-icon'
+                elif candidate_path.endswith('.json'):
+                    mime_type = 'application/json'
+
+                with open(candidate_path, 'rb') as f:
+                    content = f.read()
+                self.send_response(200)
+                self.send_header('Content-Type', mime_type)
+                self.send_header('Content-Length', len(content))
+                self.end_headers()
+                self.wfile.write(content)
+
+            print(f"✅ Served admin asset: {candidate_path}")
+            return True
+        except Exception as exc:
+            print(f"❌ Error serving admin asset {candidate_path}: {exc}")
+            import traceback
+            traceback.print_exc()
+            self.send_error(500, 'Internal Server Error')
+            return True
 
 def main():
     # Check if we're in production mode
