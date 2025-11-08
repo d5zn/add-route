@@ -1,7 +1,17 @@
-# Railway-optimized Dockerfile for 5zn-web
+# Build admin frontend
+FROM node:20 AS admin-build
+WORKDIR /app
+COPY admin/package*.json ./admin/
+COPY admin/tsconfig*.json ./admin/
+COPY admin/vite.config.ts ./admin/
+COPY admin/src ./admin/src
+COPY admin/public ./admin/public
+RUN cd admin && npm install && npm run build
+
+# Railway-optimized backend image
 FROM python:3.11-slim
 
-# Install curl for health checks
+# Install dependencies needed at runtime
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -9,8 +19,10 @@ WORKDIR /app
 
 # Copy application files
 COPY . .
+# Copy built admin bundle from the Node stage
+COPY --from=admin-build /app/admin/dist ./admin/dist
 
-# Install dependencies
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt 2>/dev/null || echo "No requirements.txt found"
 
 # Create non-root user for security
