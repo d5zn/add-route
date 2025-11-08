@@ -6,6 +6,13 @@ console.log('🏪 Loading SznStore v2.0 - Updated branding to addicted');
 
 class SznStore {
     constructor() {
+        const savedClub = (typeof window !== 'undefined' && window.localStorage) 
+            ? window.localStorage.getItem('selected_club') 
+            : null;
+        const savedTemplate = (typeof window !== 'undefined' && window.localStorage)
+            ? window.localStorage.getItem('selected_template')
+            : null;
+
         this.state = {
             postStyle: "portrait",
             canvasWidth: "desktop", 
@@ -20,7 +27,8 @@ class SznStore {
             },
             imagesArray: [],
             image: "", // Пустая строка - будет использоваться дефолтный bg.jpeg
-            club: localStorage.getItem('selected_club') || 'not-in-paris', // Выбранный клуб
+            club: savedClub || 'not-in-paris', // Выбранный клуб
+            template: savedTemplate, // Выбранный дизайн
             RideData: [{
                 dataName: "Distance",
                 data: "132km",
@@ -79,6 +87,11 @@ class SznStore {
         this.notifyListeners();
     }
     
+    setMonoMode(isMono) {
+        this.state.isMono = !!isMono;
+        this.notifyListeners();
+    }
+    
     setTitle(title) {
         this.state.title = title;
         this.notifyListeners();
@@ -101,6 +114,11 @@ class SznStore {
     
     setClub(clubId) {
         this.state.club = clubId || 'not-in-paris';
+        this.notifyListeners();
+    }
+    
+    setTemplate(templateId) {
+        this.state.template = templateId || null;
         this.notifyListeners();
     }
     

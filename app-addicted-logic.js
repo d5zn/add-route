@@ -16,6 +16,13 @@ class SznApp {
             { id: 'not-in-paris', name: 'NOT IN PARIS' },
             { id: 'hedonism', name: 'HEDONISM' }
         ];
+        this.templatesByClub = this.getTemplateDefinitions();
+        try {
+            this.currentTemplate = localStorage.getItem('selected_template');
+        } catch (e) {
+            this.currentTemplate = null;
+        }
+        this.stage = 'init';
         
         // Session ID for analytics
         this.sessionId = this.getOrCreateSessionId();
@@ -27,7 +34,10 @@ class SznApp {
         // Устанавливаем клуб в store при инициализации
         if (this.store) {
             this.store.setClub(this.currentClub);
+            this.store.setTemplate?.(this.currentTemplate);
         }
+        
+        this.ensureTemplateConsistency();
         
         this.init();
     }
@@ -53,6 +63,110 @@ class SznApp {
             console.warn('Could not get athlete ID:', e);
         }
         return null;
+    }
+
+    getTemplateDefinitions() {
+        return {
+            'not-in-paris': [
+                {
+                    id: 'nip-classic',
+                    name: 'Classic Route',
+                    badge: 'Default',
+                    description: 'Standard overlay with club logo and clean typography.',
+                    config: {
+                        backgroundMode: 'image',
+                        fontColor: 'white',
+                        isMono: false
+                    }
+                },
+                {
+                    id: 'nip-mono',
+                    name: 'Mono Cut',
+                    badge: 'Alt',
+                    description: 'High-contrast monochrome look for bold storytelling.',
+                    config: {
+                        backgroundMode: 'image',
+                        fontColor: 'white',
+                        isMono: true
+                    }
+                },
+                {
+                    id: 'nip-gradient',
+                    name: 'Sunset Fade',
+                    badge: 'Special',
+                    description: 'Gradient background with bright typography accents.',
+                    config: {
+                        backgroundMode: 'gradient',
+                        fontColor: 'white',
+                        isMono: false
+                    }
+                }
+            ],
+            'hedonism': [
+                {
+                    id: 'hedonism-classic',
+                    name: 'Hedonism Core',
+                    badge: 'Default',
+                    description: 'Signature hedonism palette with vivid logo lockup.',
+                    config: {
+                        backgroundMode: 'image',
+                        fontColor: 'white',
+                        isMono: false
+                    }
+                },
+                {
+                    id: 'hedonism-night',
+                    name: 'Night Drive',
+                    badge: 'Alt',
+                    description: 'Dark mode composition with neon typography highlights.',
+                    config: {
+                        backgroundMode: 'solid',
+                        fontColor: 'white',
+                        isMono: false
+                    }
+                },
+                {
+                    id: 'hedonism-mono',
+                    name: 'Mono Pulse',
+                    badge: 'Mono',
+                    description: 'Monochrome variant for poster-ready storytelling.',
+                    config: {
+                        backgroundMode: 'image',
+                        fontColor: 'white',
+                        isMono: true
+                    }
+                }
+            ]
+        };
+    }
+
+    ensureTemplateConsistency() {
+        const templates = this.templatesByClub[this.currentClub] || [];
+        if (!templates.length) {
+            this.currentTemplate = null;
+            try {
+                localStorage.removeItem('selected_template');
+            } catch (e) {
+                console.warn('Unable to clear selected_template:', e);
+            }
+            if (this.store?.setTemplate) {
+                this.store.setTemplate(null);
+            }
+            return;
+        }
+
+        let activeTemplate = templates.find(t => t.id === this.currentTemplate);
+        if (!activeTemplate) {
+            activeTemplate = templates[0];
+            this.currentTemplate = activeTemplate.id;
+            try {
+                localStorage.setItem('selected_template', this.currentTemplate);
+            } catch (e) {
+                console.warn('Unable to persist selected_template:', e);
+            }
+        }
+
+        this.applyTemplateConfig(activeTemplate, { skipHighlight: true, track: false });
     }
     
     async trackAnalytics(eventType, data = {}) {
@@ -89,6 +203,7 @@ class SznApp {
         this.setupTabs();
         this.initializeRatio();
         this.initializeClub();
+        this.initializeTemplateTab();
         this.setupMobileOptimizations();
         this.checkAuthStatus();
         
@@ -180,6 +295,7 @@ class SznApp {
     async loadWorkouts() {
         try {
             console.log('🔄 Loading workouts...');
+            this.showLoadingState();
             const response = await this.fetchStravaData('/athlete/activities?per_page=10');
             console.log('📊 Workouts response:', response);
             
@@ -188,14 +304,12 @@ class SznApp {
             
             if (this.workouts.length > 0) {
                 this.currentWorkout = this.workouts[0];
-                console.log('🎯 Current workout:', this.currentWorkout);
-                this.updateWorkoutDisplay();
-                this.renderWorkout();
+                console.log('🎯 Default workout prepared:', this.currentWorkout);
             } else {
                 console.log('⚠️ No workouts found');
             }
             
-            this.showConnectedState();
+            this.showClubSelectionState();
         } catch (error) {
             console.error('❌ Error loading workouts:', error);
             this.showError('Failed to load workouts. Please try again.');
@@ -364,6 +478,14 @@ class SznApp {
                 this.closeWorkoutSelector();
             }
         });
+
+        document.getElementById('club-continue-btn')?.addEventListener('click', () => {
+            this.handleClubContinue();
+        });
+
+        document.getElementById('workout-back-btn')?.addEventListener('click', () => {
+            this.showClubSelectionState();
+        });
     }
 
     setupTabs() {
@@ -422,6 +544,10 @@ class SznApp {
                 btn.classList.remove('active');
             }
         });
+    }
+
+    initializeTemplateTab() {
+        this.renderTemplateOptions();
     }
 
     setupMobileOptimizations() {
@@ -797,18 +923,62 @@ class SznApp {
         reader.readAsDataURL(file);
     }
 
+    showLoadingState() {
+        this.stage = 'loading';
+        const loading = document.getElementById('loading');
+        const notConnected = document.getElementById('not-connected');
+        const connected = document.getElementById('connected');
+        const clubSelection = document.getElementById('club-selection');
+        const workoutSelection = document.getElementById('workout-selection');
+        const editingPanel = document.querySelector('.editing-panel');
+        const navCenter = document.querySelector('.nav-center');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        if (loading) {
+            loading.classList.remove('hidden');
+            loading.style.display = 'flex';
+        }
+        if (notConnected) {
+            notConnected.classList.add('hidden');
+        }
+        if (connected) {
+            connected.classList.add('hidden');
+            connected.style.display = 'none';
+        }
+        if (clubSelection) {
+            clubSelection.classList.add('hidden');
+        }
+        if (workoutSelection) {
+            workoutSelection.classList.add('hidden');
+        }
+        if (editingPanel) {
+            editingPanel.classList.add('hidden');
+        }
+        if (navCenter) {
+            navCenter.classList.remove('visible');
+        }
+        if (logoutBtn) {
+            logoutBtn.classList.add('visible');
+        }
+    }
+
     showNotConnectedState() {
         console.log('Showing not connected state');
+        this.stage = 'login';
         const loading = document.getElementById('loading');
         const notConnected = document.getElementById('not-connected');
         const connected = document.getElementById('connected');
         const editingPanel = document.querySelector('.editing-panel');
         const previewArea = document.querySelector('.preview-area');
         const navbar = document.querySelector('.navbar');
+        const clubSelection = document.getElementById('club-selection');
+        const workoutSelection = document.getElementById('workout-selection');
         
         if (loading) loading.classList.add('hidden');
         if (notConnected) notConnected.classList.remove('hidden');
         if (connected) connected.classList.add('hidden');
+        if (clubSelection) clubSelection.classList.add('hidden');
+        if (workoutSelection) workoutSelection.classList.add('hidden');
         if (editingPanel) editingPanel.classList.add('hidden'); // Скрываем панель редактирования
         // Превью на полный экран (минус navbar)
         if (previewArea) {
@@ -837,12 +1007,374 @@ class SznApp {
         // Кнопка теперь в HTML, не создаем её динамически
     }
 
+    showClubSelectionState() {
+        console.log('Showing club selection state');
+        this.stage = 'club-selection';
+        const loading = document.getElementById('loading');
+        const notConnected = document.getElementById('not-connected');
+        const connected = document.getElementById('connected');
+        const clubSelection = document.getElementById('club-selection');
+        const workoutSelection = document.getElementById('workout-selection');
+        const editingPanel = document.querySelector('.editing-panel');
+        const previewArea = document.querySelector('.preview-area');
+        const navbar = document.querySelector('.navbar');
+        const navCenter = document.querySelector('.nav-center');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        if (loading) {
+            loading.classList.add('hidden');
+            loading.style.display = 'none';
+        }
+        if (notConnected) {
+            notConnected.classList.add('hidden');
+        }
+        if (connected) {
+            connected.classList.add('hidden');
+            connected.style.display = 'none';
+        }
+        if (workoutSelection) {
+            workoutSelection.classList.add('hidden');
+        }
+        if (clubSelection) {
+            clubSelection.classList.remove('hidden');
+        }
+        if (editingPanel) {
+            editingPanel.classList.add('hidden');
+        }
+        if (previewArea && navbar) {
+            const navbarHeight = Math.round(navbar.getBoundingClientRect().height);
+            previewArea.style.bottom = '0';
+            previewArea.style.height = `calc(100vh - ${navbarHeight}px)`;
+        }
+        if (navCenter) {
+            navCenter.classList.remove('visible');
+        }
+        if (logoutBtn) {
+            logoutBtn.classList.add('visible');
+        }
+        if (navbar) {
+            navbar.style.display = 'flex';
+            navbar.style.visibility = 'visible';
+            navbar.style.opacity = '1';
+            navbar.classList.remove('hidden');
+        }
+
+        this.initializeClub();
+        this.updateClubContinueButton();
+    }
+
+    handleClubContinue() {
+        if (!this.currentClub) {
+            return;
+        }
+
+        if (!this.workouts.length) {
+            this.showError('No workouts available yet. Sync with Strava and try again.');
+            return;
+        }
+
+        this.trackAnalytics('club_selected', {
+            club_id: this.currentClub
+        });
+
+        this.showWorkoutSelectionState();
+    }
+
+    showWorkoutSelectionState() {
+        console.log('Showing workout selection state');
+        this.stage = 'workout-selection';
+        const loading = document.getElementById('loading');
+        const notConnected = document.getElementById('not-connected');
+        const connected = document.getElementById('connected');
+        const clubSelection = document.getElementById('club-selection');
+        const workoutSelection = document.getElementById('workout-selection');
+        const editingPanel = document.querySelector('.editing-panel');
+        const previewArea = document.querySelector('.preview-area');
+        const navbar = document.querySelector('.navbar');
+        const navCenter = document.querySelector('.nav-center');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        if (loading) {
+            loading.classList.add('hidden');
+            loading.style.display = 'none';
+        }
+        if (notConnected) {
+            notConnected.classList.add('hidden');
+        }
+        if (connected) {
+            connected.classList.add('hidden');
+            connected.style.display = 'none';
+        }
+        if (clubSelection) {
+            clubSelection.classList.add('hidden');
+        }
+        if (workoutSelection) {
+            workoutSelection.classList.remove('hidden');
+        }
+        if (editingPanel) {
+            editingPanel.classList.add('hidden');
+        }
+        if (previewArea && navbar) {
+            const navbarHeight = Math.round(navbar.getBoundingClientRect().height);
+            previewArea.style.bottom = '0';
+            previewArea.style.height = `calc(100vh - ${navbarHeight}px)`;
+        }
+        if (navCenter) {
+            navCenter.classList.remove('visible');
+        }
+        if (logoutBtn) {
+            logoutBtn.classList.add('visible');
+        }
+        if (navbar) {
+            navbar.style.display = 'flex';
+            navbar.style.visibility = 'visible';
+            navbar.style.opacity = '1';
+            navbar.classList.remove('hidden');
+        }
+
+        this.populateWorkoutSelectionList();
+    }
+
+    updateClubContinueButton() {
+        const continueBtn = document.getElementById('club-continue-btn');
+        if (!continueBtn) return;
+
+        if (this.currentClub) {
+            continueBtn.disabled = false;
+            continueBtn.classList.add('active');
+        } else {
+            continueBtn.disabled = true;
+            continueBtn.classList.remove('active');
+        }
+    }
+
+    populateWorkoutSelectionList() {
+        const selectionList = document.getElementById('workout-selection-list');
+        this.renderWorkoutList(selectionList, { ctaLabel: 'Load' });
+    }
+
+    renderWorkoutList(container, options = {}) {
+        if (!container) return;
+
+        const { ctaLabel = 'Apply' } = options;
+
+        if (!this.workouts.length) {
+            container.innerHTML = '<p style="text-align: center; opacity: 0.7;">No workouts available</p>';
+            return;
+        }
+
+        container.innerHTML = this.workouts.map((workout) => `
+            <div class="workout-item ${workout.id === this.currentWorkout?.id ? 'active' : ''}" 
+                 data-workout-id="${workout.id}">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+                    <div style="flex: 1;">
+                        <h4 class="workout-name">${workout.name || 'Unnamed Workout'}</h4>
+                        <div class="workout-stats">
+                            <div class="workout-stat">
+                                <span class="workout-stat-label">Distance</span>
+                                <span class="workout-stat-value">${this.formatDistance(workout.distance)}</span>
+                            </div>
+                            <div class="workout-stat">
+                                <span class="workout-stat-label">Elevation</span>
+                                <span class="workout-stat-value">${this.formatElevation(workout.total_elevation_gain)}</span>
+                            </div>
+                            <div class="workout-stat">
+                                <span class="workout-stat-label">Time</span>
+                                <span class="workout-stat-value">${this.formatTime(workout.moving_time)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-left: 10px; padding: 8px 12px; background: #333; color: #fff; border-radius: 4px; font-size: 12px; white-space: nowrap; opacity: 0.7;">
+                        ${ctaLabel}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        container.querySelectorAll('.workout-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                console.log('🖱️ Workout item clicked:', e.target);
+                const workoutId = Number(item.dataset.workoutId);
+                console.log('🆔 Workout ID:', workoutId);
+                this.selectWorkout(workoutId);
+            });
+
+            item.addEventListener('mousedown', () => {
+                item.style.backgroundColor = '#333333';
+            });
+
+            item.addEventListener('mouseup', () => {
+                item.style.backgroundColor = '';
+            });
+
+            item.addEventListener('mouseleave', () => {
+                item.style.backgroundColor = '';
+            });
+        });
+    }
+
+    renderTemplateOptions() {
+        const container = document.getElementById('template-options');
+        const label = document.getElementById('template-selected-label');
+        if (!container) return;
+
+        const templates = this.getTemplatesForCurrentClub();
+        if (!templates.length) {
+            container.innerHTML = `
+                <div class="template-card" style="cursor: default; opacity: 0.6;">
+                    <div class="template-card-header">
+                        <span class="template-name">No templates yet</span>
+                        <span class="template-badge">—</span>
+                    </div>
+                    <p class="template-description">Select a club to access design presets.</p>
+                </div>
+            `;
+            if (label) {
+                label.textContent = 'Select a club first';
+            }
+            return;
+        }
+
+        container.innerHTML = templates.map(template => `
+            <div class="template-card ${template.id === this.currentTemplate ? 'active' : ''}" data-template-id="${template.id}">
+                <div class="template-card-header">
+                    <span class="template-name">${template.name}</span>
+                    ${template.badge ? `<span class="template-badge">${template.badge}</span>` : ''}
+                </div>
+                <p class="template-description">${template.description}</p>
+            </div>
+        `).join('');
+
+        this.attachTemplateEvents();
+
+        const matchedTemplate = templates.find(t => t.id === this.currentTemplate);
+        if (!matchedTemplate && templates.length) {
+            this.selectTemplate(templates[0].id, { track: false });
+        } else {
+            this.highlightTemplate(this.currentTemplate);
+            if (matchedTemplate) {
+                this.applyTemplateConfig(matchedTemplate, { skipHighlight: true, track: false });
+            }
+        }
+    }
+
+    attachTemplateEvents() {
+        document.querySelectorAll('.template-card').forEach(card => {
+            card.addEventListener('click', (event) => {
+                const templateId = event.currentTarget.dataset.templateId;
+                this.selectTemplate(templateId);
+            });
+        });
+    }
+
+    selectTemplate(templateId, options = {}) {
+        const { track = true } = options;
+        const templates = this.getTemplatesForCurrentClub();
+        const template = templates.find(item => item.id === templateId);
+
+        if (!template) {
+            console.warn('Template not found for ID:', templateId);
+            return;
+        }
+
+        if (this.currentTemplate === templateId && !options.force) {
+            this.highlightTemplate(templateId);
+            return;
+        }
+
+        this.currentTemplate = templateId;
+        try {
+            localStorage.setItem('selected_template', templateId);
+        } catch (e) {
+            console.warn('Unable to persist selected_template:', e);
+        }
+
+        this.applyTemplateConfig(template, { ...options, skipHighlight: true });
+        this.highlightTemplate(templateId);
+
+        if (track) {
+            this.trackAnalytics('template_selected', {
+                template_id: templateId,
+                club_id: this.currentClub
+            });
+        }
+    }
+
+    highlightTemplate(templateId) {
+        const templates = this.getTemplatesForCurrentClub();
+        const cards = document.querySelectorAll('.template-card');
+        let activeTemplate = null;
+
+        cards.forEach(card => {
+            const isActive = card.dataset.templateId === templateId;
+            if (isActive) {
+                card.classList.add('active');
+                activeTemplate = templates.find(t => t.id === templateId) || null;
+            } else {
+                card.classList.remove('active');
+            }
+        });
+
+        const label = document.getElementById('template-selected-label');
+        if (label) {
+            if (activeTemplate) {
+                label.textContent = activeTemplate.name;
+            } else if (!templates.length) {
+                label.textContent = 'Select a club first';
+            } else {
+                label.textContent = 'Choose template';
+            }
+        }
+    }
+
+    applyTemplateConfig(template, options = {}) {
+        if (!template) return;
+
+        const { skipHighlight = false } = options;
+
+        if (this.store?.setTemplate) {
+            this.store.setTemplate(template.id);
+        }
+
+        if (template.config) {
+            if (template.config.backgroundMode && this.store?.setBackgroundMode) {
+                this.store.setBackgroundMode(template.config.backgroundMode);
+            }
+            if (template.config.fontColor && this.store?.setFontColor) {
+                this.store.setFontColor(template.config.fontColor);
+            }
+            if (typeof template.config.isMono === 'boolean' && this.store?.setMonoMode) {
+                this.store.setMonoMode(template.config.isMono);
+            }
+        }
+
+        if (!skipHighlight) {
+            this.highlightTemplate(template.id);
+        }
+
+        if (this.polymerCanvas) {
+            this.polymerCanvas.render();
+        }
+    }
+
+    getTemplatesForCurrentClub() {
+        return this.templatesByClub[this.currentClub] || [];
+    }
+
+    getTemplateById(templateId) {
+        const templates = this.templatesByClub[this.currentClub] || [];
+        return templates.find(template => template.id === templateId) || null;
+    }
+
     showConnectedState() {
         console.log('Showing connected state');
+        this.stage = 'editor';
         const loading = document.getElementById('loading');
         const notConnected = document.getElementById('not-connected');
         const connected = document.getElementById('connected');
         const previewArea = document.querySelector('.preview-area');
+        const clubSelection = document.getElementById('club-selection');
+        const workoutSelection = document.getElementById('workout-selection');
         
         console.log('🔍 Elements found:', {
             loading: !!loading,
@@ -866,6 +1398,12 @@ class SznApp {
                 console.log('✅ Connect button hidden');
             }
         }
+        if (clubSelection) {
+            clubSelection.classList.add('hidden');
+        }
+        if (workoutSelection) {
+            workoutSelection.classList.add('hidden');
+        }
         if (connected) {
             connected.classList.remove('hidden');
             connected.style.display = 'flex';
@@ -876,6 +1414,11 @@ class SznApp {
         if (editingPanel) {
             editingPanel.classList.remove('hidden');
             console.log('✅ Editing panel shown');
+        }
+
+        this.renderTemplateOptions();
+        if (this.currentTemplate) {
+            this.highlightTemplate(this.currentTemplate);
         }
         
         // Синхронизируем кнопки метрик с текущим состоянием
@@ -1034,73 +1577,28 @@ class SznApp {
         if (this.store) {
             this.store.setClub(clubId);
         }
+
+        this.ensureTemplateConsistency();
+        this.renderTemplateOptions();
+        if (this.currentTemplate) {
+            this.highlightTemplate(this.currentTemplate);
+        }
         
         // Перерисовываем canvas с новым цветом маршрута
         if (this.polymerCanvas) {
             this.polymerCanvas.render();
         }
+
+        this.updateClubContinueButton();
         
         console.log('✅ Club selected:', clubId);
     }
 
     populateWorkoutList() {
         const workoutList = document.getElementById('workout-list');
-        if (!workoutList || !this.workouts.length) {
-            workoutList.innerHTML = '<p style="text-align: center; opacity: 0.7;">No workouts available</p>';
-            this.updateStravaLink();
-            return;
-        }
+        if (!workoutList) return;
 
-        workoutList.innerHTML = this.workouts.map((workout, index) => `
-            <div class="workout-item ${workout.id === this.currentWorkout?.id ? 'active' : ''}" 
-                 data-workout-id="${workout.id}">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
-                    <div style="flex: 1;">
-                        <h4 class="workout-name">${workout.name || 'Unnamed Workout'}</h4>
-                        <div class="workout-stats">
-                            <div class="workout-stat">
-                                <span class="workout-stat-label">Distance</span>
-                                <span class="workout-stat-value">${this.formatDistance(workout.distance)}</span>
-                            </div>
-                            <div class="workout-stat">
-                                <span class="workout-stat-label">Elevation</span>
-                                <span class="workout-stat-value">${this.formatElevation(workout.total_elevation_gain)}</span>
-                            </div>
-                            <div class="workout-stat">
-                                <span class="workout-stat-label">Time</span>
-                                <span class="workout-stat-value">${this.formatTime(workout.moving_time)}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div style="margin-left: 10px; padding: 8px 12px; background: #333; color: #fff; border-radius: 4px; font-size: 12px; white-space: nowrap; opacity: 0.7;">
-                        Apply
-                    </div>
-                </div>
-            </div>
-        `).join('');
-
-        workoutList.querySelectorAll('.workout-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                console.log('🖱️ Workout item clicked:', e.target);
-                const workoutId = parseInt(item.dataset.workoutId);
-                console.log('🆔 Workout ID:', workoutId);
-                this.selectWorkout(workoutId);
-            });
-            
-            // Добавляем визуальную обратную связь
-            item.addEventListener('mousedown', () => {
-                item.style.backgroundColor = '#333333';
-            });
-            
-            item.addEventListener('mouseup', () => {
-                item.style.backgroundColor = '';
-            });
-            
-            item.addEventListener('mouseleave', () => {
-                item.style.backgroundColor = '';
-            });
-        });
-        
+        this.renderWorkoutList(workoutList, { ctaLabel: 'Apply' });
         this.updateStravaLink();
     }
 
@@ -1114,6 +1612,12 @@ class SznApp {
             this.currentWorkout = workout;
             this.updateWorkoutDisplay();
             this.renderWorkout();
+            if (this.stage === 'workout-selection') {
+                this.trackAnalytics('workout_selected', {
+                    workout_id: workout.id
+                });
+                this.showConnectedState();
+            }
             this.closeWorkoutSelector();
             console.log('🏃 Selected workout:', workout.name);
         } else {
@@ -1329,6 +1833,7 @@ class SznApp {
     }
 
     logout() {
+        this.stage = 'login';
         localStorage.removeItem('strava_token');
         
         this.stravaToken = null;

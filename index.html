@@ -91,6 +91,31 @@
                         </div>
                     </div>
 
+                    <!-- Club Selection State -->
+                    <div id="club-selection" class="state-container hidden">
+                        <div class="state-card">
+                            <h2>Select Club</h2>
+                            <p style="margin-bottom: 16px;">Choose which club to work with before editing your workout.</p>
+                            <div class="club-controls" style="gap: 12px;">
+                                <button class="club-btn club-option" data-club="not-in-paris">NOT IN PARIS</button>
+                                <button class="club-btn club-option" data-club="hedonism">HEDONISM</button>
+                            </div>
+                            <button id="club-continue-btn" class="action-btn" style="margin-top: 24px;" disabled>Continue</button>
+                        </div>
+                    </div>
+
+                    <!-- Workout Selection State -->
+                    <div id="workout-selection" class="state-container hidden">
+                        <div class="state-card" style="max-height: 80vh; overflow: hidden; display: flex; flex-direction: column;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; width: 100%;">
+                                <h2 style="margin: 0;">Select Workout</h2>
+                                <button id="workout-back-btn" class="action-btn" style="width: auto; padding: 10px 16px;">Back</button>
+                            </div>
+                            <p style="margin-bottom: 16px;">Pick an activity to load into the editor.</p>
+                            <div id="workout-selection-list" class="workout-list" style="flex: 1; overflow-y: auto; width: 100%;"></div>
+                        </div>
+                    </div>
+
                     <!-- Connected State -->
                     <div id="connected" class="connected-state ratio-9-16 hidden">
                         <!-- Preview Canvas -->
@@ -138,7 +163,7 @@
             <div class="tab-nav">
                 <button class="tab-btn active" data-tab="photo">PHOTO</button>
                 <button class="tab-btn" data-tab="data">DATA</button>
-                <button class="tab-btn" data-tab="club">CLUB</button>
+                <button class="tab-btn" data-tab="template">TEMPLATE</button>
                 <button class="tab-btn" data-tab="ratio">RATIO</button>
             </div>
 
@@ -160,11 +185,16 @@
                     </div>
                 </div>
 
-                <!-- Club Tab -->
-                <div id="club-tab" class="tab-panel">
-                    <div class="club-controls">
-                        <button class="club-btn active" data-club="not-in-paris">NOT IN PARIS</button>
-                        <button class="club-btn" data-club="hedonism">HEDONISM</button>
+                <!-- Template Tab -->
+                <div id="template-tab" class="tab-panel">
+                    <div class="template-panel">
+                        <div class="template-header">
+                            <span class="template-label">Design presets</span>
+                            <span class="template-selected" id="template-selected-label">Select a club first</span>
+                        </div>
+                        <div class="template-grid" id="template-options">
+                            <!-- Templates will be rendered here -->
+                        </div>
                     </div>
                 </div>
 
