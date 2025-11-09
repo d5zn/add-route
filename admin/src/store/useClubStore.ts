@@ -3,7 +3,7 @@ import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import { nanoid } from 'nanoid'
 import type { Club, ClubSummary, Template } from '../types'
-import { mockClubs, mockTemplates } from '../data/mockClubs'
+import { mockClubs, mockTemplates } from '../data/mockClubs.ts'
 import { createTemplateDraft } from '../utils/templateFactory'
 
 export type ClubStoreState = {
@@ -36,13 +36,13 @@ export const useClubStore = create<ClubStore>()(
   devtools(
     immer((set, get) => ({
       clubs: mockClubs,
-      summaries: mockClubs.map((club) => ({
+      summaries: mockClubs.map((club: Club) => ({
         id: club.id,
         name: club.name,
         slug: club.slug,
         theme: club.theme,
         status: club.status,
-        templatesCount: mockTemplates.filter((template) => template.clubId === club.id).length,
+        templatesCount: mockTemplates.filter((template: Template) => template.clubId === club.id).length,
       })),
       templates: mockTemplates,
       selectedClubId: mockClubs[0]?.id ?? null,
@@ -85,7 +85,7 @@ export const useClubStore = create<ClubStore>()(
         })
         set((draft) => {
           draft.templates.push(template)
-          const summary = draft.summaries.find((item) => item.id === clubId)
+        const summary = draft.summaries.find((item) => item.id === clubId)
           if (summary) {
             summary.templatesCount += 1
           }
@@ -103,7 +103,7 @@ export const useClubStore = create<ClubStore>()(
           const summary = draft.summaries.find((item) => item.id === template.clubId)
           if (summary) {
             summary.templatesCount = draft.templates.filter(
-              (item) => item.clubId === template.clubId,
+              (item: Template) => item.clubId === template.clubId,
             ).length
           }
         }, false, 'upsertTemplate')
