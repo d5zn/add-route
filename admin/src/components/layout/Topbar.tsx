@@ -21,8 +21,6 @@ export const Topbar = () => {
   const navigate = useNavigate()
   const club = useSelectedClub()
   const template = useTemplate()
-  const basePath = (import.meta.env.BASE_URL ?? '/').replace(/\/$/, '')
-
   const isEditorRoute = /\/templates\//.test(location.pathname)
 
   return (
@@ -34,12 +32,7 @@ export const Topbar = () => {
               <ArrowBackIosNewRoundedIcon fontSize="small" />
             </IconButton>
           )}
-          <Button
-            component={RouterLink}
-            to={`${basePath || ''}/clubs`}
-            color="primary"
-            sx={{ fontWeight: 700 }}
-          >
+          <Button component={RouterLink} to="/clubs" color="primary" sx={{ fontWeight: 700 }}>
             Template Studio
           </Button>
           {club && (
@@ -80,7 +73,7 @@ export const Topbar = () => {
                 variant="contained"
                 startIcon={<RocketLaunchRoundedIcon />}
                 component={RouterLink}
-                to={`${basePath || ''}/clubs/${template.clubId ?? club?.id ?? ''}/templates/${template.id}`}
+                to={`/clubs/${template.clubId ?? club?.id ?? ''}/templates/${template.id}`}
               >
                 Опубликовать
               </Button>
