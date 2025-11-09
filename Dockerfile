@@ -7,6 +7,7 @@ COPY admin/tsconfig*.json ./
 COPY admin/vite.config.ts ./
 COPY admin/src ./src
 COPY admin/public ./public
+RUN ls -R src
 RUN npm run build
 
 # Railway-optimized backend image
