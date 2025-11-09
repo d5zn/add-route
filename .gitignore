@@ -72,6 +72,10 @@ data/
 athletes_data/
 *.json.bak
 
+# Allow mock data used by the admin frontend
+!admin/src/data/
+!admin/src/data/**
+
 # Temporary files
 *.tmp
 *.temp
