@@ -533,7 +533,7 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         if not DEBUG:
             csp = (
                 "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline'; "  # Removed unsafe-eval for security
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
                 "style-src 'self' 'unsafe-inline'; "
                 "img-src 'self' data: https:; "
                 "connect-src 'self' https://www.strava.com; "

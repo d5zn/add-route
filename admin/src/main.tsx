@@ -12,6 +12,8 @@ import { TemplateEditorPage } from './pages/TemplateEditorPage.tsx'
 
 const queryClient = new QueryClient()
 
+const basename = (import.meta.env.BASE_URL ?? '/').replace(/\/$/, '')
+
 const router = createBrowserRouter(
   [
     {
@@ -25,7 +27,7 @@ const router = createBrowserRouter(
       ],
     },
   ],
-  { basename: import.meta.env.BASE_URL },
+  { basename },
 )
 
 createRoot(document.getElementById('root')!).render(
