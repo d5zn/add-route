@@ -8,6 +8,7 @@ COPY admin/vite.config.ts ./
 COPY admin/src ./src
 COPY admin/public ./public
 RUN ls -R src
+RUN find src -maxdepth 3 -type f -name 'mockClubs.ts'
 RUN npm run build
 
 # Railway-optimized backend image
