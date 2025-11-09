@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid'
-import type { TextElement } from '../types'
+import type { TextElement } from '../types/index.ts'
 
 type TextElementOverrides = Partial<Omit<TextElement, 'kind' | 'id' | 'style' | 'box'>> & {
   style?: Partial<TextElement['style']>

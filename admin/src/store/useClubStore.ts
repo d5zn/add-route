@@ -2,9 +2,9 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import { nanoid } from 'nanoid'
-import type { Club, ClubSummary, Template } from '../types'
+import type { Club, ClubSummary, Template } from '../types/index.ts'
 import { mockClubs, mockTemplates } from '../data/mockClubs.ts'
-import { createTemplateDraft } from '../utils/templateFactory'
+import { createTemplateDraft } from '../utils/templateFactory.ts'
 
 export type ClubStoreState = {
   clubs: Club[]

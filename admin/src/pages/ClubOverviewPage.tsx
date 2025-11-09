@@ -19,7 +19,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useClubStore } from '../store/useClubStore'
-import type { ClubTheme } from '../types'
+import type { ClubTheme } from '../types/index.ts'
 
 const DEFAULT_THEME: ClubTheme = {
   primaryColor: '#2563EB',

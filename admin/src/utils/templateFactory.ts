@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid'
-import type { Template, Page, Layer, FillStyle } from '../types'
+import type { Template, Page, Layer, FillStyle } from '../types/index.ts'
 
 const createDefaultLayer = (name = 'Layer 1'): Layer => ({
   id: nanoid(),

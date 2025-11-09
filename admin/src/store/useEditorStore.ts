@@ -3,8 +3,8 @@ import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import { nanoid } from 'nanoid'
 import { produce } from 'immer'
-import type { EditorElement, EditorState, Point, Template } from '../types'
-import { createTemplateDraft } from '../utils/templateFactory'
+import type { EditorElement, EditorState, Point, Template } from '../types/index.ts'
+import { createTemplateDraft } from '../utils/templateFactory.ts'
 
 type EditorStore = {
   state: EditorState
