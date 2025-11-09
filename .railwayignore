@@ -18,7 +18,7 @@ yarn-error.log*
 server_config.py
 
 # Local data
-data/
+/data/
 *.sqlite
 *.db
 

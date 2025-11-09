@@ -2,10 +2,11 @@
 FROM node:20 AS admin-build
 WORKDIR /app/admin
 COPY admin/package*.json ./
+RUN npm install
 COPY admin/tsconfig*.json ./
 COPY admin/vite.config.ts ./
-RUN npm install
-COPY admin/ ./
+COPY admin/src ./src
+COPY admin/public ./public
 RUN npm run build
 
 # Railway-optimized backend image
