@@ -18,7 +18,7 @@ const router = createBrowserRouter(
       path: '/',
       element: <App />,
       children: [
-        { index: true, element: <Navigate to="/clubs" replace /> },
+        { index: true, element: <Navigate to="clubs" replace /> },
         { path: 'clubs', element: <ClubOverviewPage /> },
         { path: 'clubs/:clubId', element: <ClubDetailPage /> },
         { path: 'clubs/:clubId/templates/:templateId', element: <TemplateEditorPage /> },

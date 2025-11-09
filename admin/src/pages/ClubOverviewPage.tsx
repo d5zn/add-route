@@ -36,6 +36,7 @@ export const ClubOverviewPage = () => {
   const selectClub = useClubStore((store) => store.selectClub)
   const createClub = useClubStore((store) => store.createClub)
   const navigate = useNavigate()
+  const basePath = (import.meta.env.BASE_URL ?? '/').replace(/\/$/, '')
 
   const [isDialogOpen, setDialogOpen] = useState(false)
   const [name, setName] = useState('')
@@ -63,7 +64,7 @@ export const ClubOverviewPage = () => {
     setTheme({ ...DEFAULT_THEME })
 
     selectClub(club.id)
-    navigate(`/clubs/${club.id}`)
+    navigate(`${basePath}/clubs/${club.id}`)
   }
 
   return (
@@ -88,7 +89,7 @@ export const ClubOverviewPage = () => {
             <Card sx={{ borderRadius: 3, height: '100%' }}>
               <CardActionArea
                 component={RouterLink}
-                to={`/clubs/${club.id}`}
+                to={`${basePath}/clubs/${club.id}`}
                 onClick={() => selectClub(club.id)}
                 sx={{ height: '100%' }}
               >
