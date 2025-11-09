@@ -75,19 +75,20 @@ export const Topbar = () => {
             <Button variant="outlined" startIcon={<SaveRoundedIcon />} disabled>
               Сохранить
             </Button>
-            <Button
-              variant="contained"
-              startIcon={<RocketLaunchRoundedIcon />}
-              disabled={!isEditorRoute}
-              component={RouterLink}
-              to={
-                isEditorRoute && template
-                  ? `${basePath || ''}/clubs/${template.clubId ?? club?.id ?? ''}/templates/${template.id}`
-                  : undefined
-              }
-            >
-              Опубликовать
-            </Button>
+            {isEditorRoute && template ? (
+              <Button
+                variant="contained"
+                startIcon={<RocketLaunchRoundedIcon />}
+                component={RouterLink}
+                to={`${basePath || ''}/clubs/${template.clubId ?? club?.id ?? ''}/templates/${template.id}`}
+              >
+                Опубликовать
+              </Button>
+            ) : (
+              <Button variant="contained" startIcon={<RocketLaunchRoundedIcon />} disabled>
+                Опубликовать
+              </Button>
+            )}
           </Box>
         </Stack>
       </Toolbar>
