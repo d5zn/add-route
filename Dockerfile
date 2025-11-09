@@ -1,12 +1,12 @@
 # Build admin frontend
 FROM node:20 AS admin-build
-WORKDIR /app
-COPY admin/package*.json ./admin/
-COPY admin/tsconfig*.json ./admin/
-COPY admin/vite.config.ts ./admin/
-COPY admin/src ./admin/src
-COPY admin/public ./admin/public
-RUN cd admin && npm install && npm run build
+WORKDIR /app/admin
+COPY admin/package*.json ./
+COPY admin/tsconfig*.json ./
+COPY admin/vite.config.ts ./
+RUN npm install
+COPY admin/ ./
+RUN npm run build
 
 # Railway-optimized backend image
 FROM python:3.11-slim
