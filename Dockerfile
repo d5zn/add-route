@@ -5,6 +5,7 @@ COPY admin/package*.json ./
 RUN npm install
 COPY admin/tsconfig*.json ./
 COPY admin/vite.config.ts ./
+COPY admin/index.html ./
 COPY admin/src ./src
 COPY admin/public ./public
 RUN ls -R src
