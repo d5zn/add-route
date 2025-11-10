@@ -1,17 +1,6 @@
-import { Box } from '@mui/material'
-import { Outlet } from 'react-router-dom'
-import { Topbar } from './components/layout/Topbar'
+import { AppShell } from './components/layout/AppShell'
 import './App.css'
 
-function App() {
-  return (
-    <Box display="flex" flexDirection="column" height="100vh">
-      <Topbar />
-      <Box flex={1} minHeight={0} bgcolor="background.default">
-        <Outlet />
-      </Box>
-    </Box>
-  )
-}
+const App = () => <AppShell />
 
 export default App

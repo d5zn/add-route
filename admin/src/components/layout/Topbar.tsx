@@ -1,12 +1,4 @@
-import {
-  AppBar,
-  Box,
-  Button,
-  IconButton,
-  Stack,
-  Toolbar,
-  Typography,
-} from '@mui/material'
+import { AppBar, Box, Button, IconButton, Stack, Toolbar, Typography } from '@mui/material'
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded'
 import UndoRoundedIcon from '@mui/icons-material/UndoRounded'
 import RedoRoundedIcon from '@mui/icons-material/RedoRounded'
@@ -22,29 +14,47 @@ export const Topbar = () => {
   const club = useSelectedClub()
   const template = useTemplate()
   const isEditorRoute = /\/templates\//.test(location.pathname)
-  const baseUrl = import.meta.env.BASE_URL ?? '/'
-  const assetPrefix = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
 
   return (
-    <AppBar position="static" color="inherit" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+    <AppBar
+      position="static"
+      elevation={0}
+      sx={{
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        background: 'rgba(15, 23, 42, 0.92)',
+        backdropFilter: 'blur(12px)',
+      }}
+    >
       <Toolbar sx={{ justifyContent: 'space-between', gap: 4 }}>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Box
-            component={RouterLink}
-            to="/clubs"
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              textDecoration: 'none',
-              lineHeight: 0,
-            }}
-          >
-            <Box
-              component="img"
-              src={`${assetPrefix}logo_admin.svg`}
-              alt="add:RoutAdmin"
-              sx={{ height: 32 }}
-            />
+        <Stack direction="row" spacing={3} alignItems="center">
+          <Box component={RouterLink} to="/clubs" sx={{ textDecoration: 'none' }}>
+            <Typography
+              component="span"
+              sx={{
+                fontFamily: '"SF Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                fontStyle: 'italic',
+                fontWeight: 850,
+                fontSize: 26,
+                letterSpacing: '0.24em',
+                color: '#FFFFFF',
+                textTransform: 'uppercase',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 1,
+                '&::before': {
+                  content: '""',
+                  display: 'inline-block',
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  background: '#E64400',
+                  marginRight: 12,
+                },
+              }}
+            >
+              add:RoutAdmin
+            </Typography>
           </Box>
           {isEditorRoute && (
             <IconButton size="small" edge="start" onClick={() => navigate(-1)}>
