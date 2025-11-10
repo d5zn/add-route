@@ -9,12 +9,94 @@ import socketserver
 import webbrowser
 import os
 import json
+import secrets
 import time
 from datetime import datetime
 from collections import defaultdict
 from urllib.parse import urlparse, parse_qs
+from http.cookies import SimpleCookie
 
 ADMIN_DIST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'admin', 'dist')
+ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '54321')
+ADMIN_SESSIONS = {}
+
+ADMIN_LOGIN_PAGE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login</title>
+    <style>
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+        body { margin: 0; background: #0f172a; color: #ffffff; display: flex; min-height: 100vh; align-items: center; justify-content: center; }
+        .card { background: rgba(15, 23, 42, 0.85); border-radius: 16px; padding: 32px; width: min(360px, calc(100vw - 32px)); box-shadow: 0 18px 60px rgba(15, 23, 42, 0.45); backdrop-filter: blur(12px); }
+        h1 { margin: 0 0 12px; font-size: 24px; font-weight: 600; }
+        p { margin: 0 0 24px; opacity: 0.7; }
+        label { display: block; font-size: 13px; margin-bottom: 8px; opacity: 0.8; letter-spacing: 0.04em; text-transform: uppercase; }
+        input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.4); background: rgba(15, 23, 42, 0.6); color: #f8fafc; font-size: 14px; transition: border 0.2s ease; }
+        input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+        button { width: 100%; padding: 12px; margin-top: 20px; border: none; border-radius: 10px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; font-weight: 600; font-size: 15px; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        button:hover { transform: translateY(-1px); box-shadow: 0 18px 40px rgba(59, 130, 246, 0.35); }
+        .error { margin-top: 16px; font-size: 13px; color: #fca5a5; display: none; }
+        .branding { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: #3b82f6; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="branding">
+            <div class="dot"></div>
+            <span style="letter-spacing: 0.3em; font-size: 12px; opacity: 0.6;">ADDICTED</span>
+        </div>
+        <h1>Admin</h1>
+        <p>Sign in to manage templates and club assets.</p>
+        <form id="login-form">
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" autocomplete="username" required />
+
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required />
+
+            <button type="submit">Continue</button>
+            <div class="error" id="error">Invalid credentials. Try again.</div>
+        </form>
+    </div>
+    <script>
+        const form = document.getElementById('login-form');
+        const errorEl = document.getElementById('error');
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            errorEl.style.display = 'none';
+            const username = event.target.username.value.trim();
+            const password = event.target.password.value;
+            if (!username || !password) {
+                errorEl.textContent = 'Enter username and password.';
+                errorEl.style.display = 'block';
+                return;
+            }
+            try {
+                const response = await fetch('/route/admin/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                if (response.ok) {
+                    window.location.reload();
+                    return;
+                }
+                const data = await response.json().catch(() => ({}));
+                errorEl.textContent = data?.error ?? 'Invalid credentials. Try again.';
+                errorEl.style.display = 'block';
+            } catch (error) {
+                errorEl.textContent = 'Network error. Check your connection.';
+                errorEl.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
+"""
 
 # PostgreSQL support
 try:
@@ -510,6 +592,8 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     rate_limit_store = defaultdict(list)
     RATE_LIMIT_WINDOW = 60  # seconds
     RATE_LIMIT_MAX_REQUESTS = 100  # max requests per window
+    ADMIN_SESSION_COOKIE = 'admin_session'
+    ADMIN_SESSION_TTL = 60 * 60 * 12  # 12 hours
     
     def end_headers(self):
         # Get origin for CORS
@@ -573,6 +657,104 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         
         super().end_headers()
 
+    def is_connection_secure(self):
+        forwarded_proto = self.headers.get('X-Forwarded-Proto', '')
+        return forwarded_proto.lower() == 'https'
+
+    def get_admin_session_token(self):
+        cookie_header = self.headers.get('Cookie')
+        if not cookie_header:
+            return None
+        cookie = SimpleCookie()
+        try:
+            cookie.load(cookie_header)
+        except Exception:
+            return None
+        morsel = cookie.get(self.ADMIN_SESSION_COOKIE)
+        return morsel.value if morsel else None
+
+    def is_admin_authenticated(self):
+        token = self.get_admin_session_token()
+        if not token:
+            return False
+        session = ADMIN_SESSIONS.get(token)
+        if not session:
+            return False
+        expires_at = session.get('expires_at')
+        if expires_at and expires_at < time.time():
+            ADMIN_SESSIONS.pop(token, None)
+            return False
+        return True
+
+    def set_admin_session_cookie(self, token):
+        cookie = SimpleCookie()
+        cookie[self.ADMIN_SESSION_COOKIE] = token
+        morsel = cookie[self.ADMIN_SESSION_COOKIE]
+        morsel['path'] = '/route/admin'
+        morsel['httponly'] = True
+        morsel['samesite'] = 'Strict'
+        if self.is_connection_secure():
+            morsel['secure'] = True
+        morsel['max-age'] = str(self.ADMIN_SESSION_TTL)
+        self.send_header('Set-Cookie', morsel.OutputString())
+
+    def clear_admin_session_cookie(self):
+        cookie = SimpleCookie()
+        cookie[self.ADMIN_SESSION_COOKIE] = ''
+        morsel = cookie[self.ADMIN_SESSION_COOKIE]
+        morsel['path'] = '/route/admin'
+        morsel['expires'] = 'Thu, 01 Jan 1970 00:00:00 GMT'
+        morsel['httponly'] = True
+        morsel['samesite'] = 'Strict'
+        if self.is_connection_secure():
+            morsel['secure'] = True
+        self.send_header('Set-Cookie', morsel.OutputString())
+
+    def send_admin_login_page(self):
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.send_header('Content-Length', len(ADMIN_LOGIN_PAGE.encode('utf-8')))
+        self.end_headers()
+        self.wfile.write(ADMIN_LOGIN_PAGE.encode('utf-8'))
+
+    def handle_admin_login(self):
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            raw_body = self.rfile.read(content_length)
+            data = json.loads(raw_body.decode('utf-8'))
+        except Exception:
+            self.send_error(400, 'Invalid JSON')
+            return
+
+        username = str(data.get('username', '')).strip()
+        password = str(data.get('password', '')).strip()
+
+        if username != ADMIN_USERNAME or password != ADMIN_PASSWORD:
+            self.send_response(401)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Invalid credentials'}).encode('utf-8'))
+            return
+
+        token = secrets.token_urlsafe(32)
+        ADMIN_SESSIONS[token] = {'created_at': time.time(), 'expires_at': time.time() + self.ADMIN_SESSION_TTL}
+
+        self.send_response(200)
+        self.set_admin_session_cookie(token)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps({'status': 'ok'}).encode('utf-8'))
+
+    def handle_admin_logout(self):
+        token = self.get_admin_session_token()
+        if token:
+            ADMIN_SESSIONS.pop(token, None)
+        self.send_response(200)
+        self.clear_admin_session_cookie()
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps({'status': 'logged_out'}).encode('utf-8'))
+
     def do_GET(self):
         """Handle GET requests with rate limiting"""
         # Health check endpoint (skip rate limiting)
@@ -586,6 +768,14 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         # Rate limiting check
         if not self.check_rate_limit():
             self.send_error(429, 'Too Many Requests')
+            return
+        
+        if self.path in ('/route/admin/login', '/route/admin/signin'):
+            self.send_admin_login_page()
+            return
+
+        if self.path in ('/route/admin/logout', '/route/admin/api/logout'):
+            self.handle_admin_logout()
             return
         
         # Admin SPA under /route/admin
@@ -783,6 +973,14 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         # Rate limiting check
         if not self.check_rate_limit():
             self.send_error(429, 'Too Many Requests')
+            return
+        
+        if self.path in ('/route/admin/api/login', '/route/admin/login'):
+            self.handle_admin_login()
+            return
+
+        if self.path in ('/route/admin/api/logout', '/route/admin/logout'):
+            self.handle_admin_logout()
             return
         
         # OAuth token exchange (works for both root and /route/)
@@ -1285,6 +1483,17 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         if not rel_path:
             rel_path = 'index.html'
+
+        if not self.is_admin_authenticated():
+            if rel_path == 'index.html':
+                self.send_admin_login_page()
+                return True
+            # Allow login API to be handled elsewhere
+            if rel_path.startswith('api/'):
+                self.send_error(401, 'Authentication required')
+                return True
+            self.send_error(401, 'Authentication required')
+            return True
 
         candidate_path = os.path.join(ADMIN_DIST_DIR, rel_path)
 

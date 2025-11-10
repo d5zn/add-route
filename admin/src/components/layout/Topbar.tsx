@@ -22,19 +22,35 @@ export const Topbar = () => {
   const club = useSelectedClub()
   const template = useTemplate()
   const isEditorRoute = /\/templates\//.test(location.pathname)
+  const baseUrl = import.meta.env.BASE_URL ?? '/'
+  const assetPrefix = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
 
   return (
     <AppBar position="static" color="inherit" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
       <Toolbar sx={{ justifyContent: 'space-between', gap: 4 }}>
         <Stack direction="row" spacing={2} alignItems="center">
+          <Box
+            component={RouterLink}
+            to="/clubs"
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              textDecoration: 'none',
+              lineHeight: 0,
+            }}
+          >
+            <Box
+              component="img"
+              src={`${assetPrefix}logo_admin.svg`}
+              alt="add:RoutAdmin"
+              sx={{ height: 32 }}
+            />
+          </Box>
           {isEditorRoute && (
             <IconButton size="small" edge="start" onClick={() => navigate(-1)}>
               <ArrowBackIosNewRoundedIcon fontSize="small" />
             </IconButton>
           )}
-          <Button component={RouterLink} to="/clubs" color="primary" sx={{ fontWeight: 700 }}>
-            Template Studio
-          </Button>
           {club && (
             <Box>
               <Typography variant="body2" color="text.secondary">
