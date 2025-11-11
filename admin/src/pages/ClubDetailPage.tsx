@@ -9,7 +9,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
-import Grid from '@mui/material/Grid2'
+import Grid from '@mui/material/Grid'
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import EditRoundedIcon from '@mui/icons-material/EditRounded'
 import LaunchRoundedIcon from '@mui/icons-material/LaunchRounded'
@@ -100,7 +100,7 @@ export const ClubDetailPage = () => {
         </Typography>
         <Grid container spacing={3}>
           {templates.map((template) => (
-            <Grid key={template.id} xs={12} md={6} lg={4}>
+            <Grid key={template.id} item xs={12} md={6} lg={4}>
               <Card sx={{ borderRadius: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
