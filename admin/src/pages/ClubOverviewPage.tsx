@@ -1,20 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import {
-  Box,
-  Button,
-  Card,
-  CardActionArea,
-  CardContent,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material'
-import Grid from '@mui/material/Grid'
+import { Box, Button, Card, CardActionArea, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from '@mui/material'
+import Grid from '@mui/material/Unstable_Grid2'
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
@@ -84,7 +71,7 @@ export const ClubOverviewPage = () => {
 
       <Grid container spacing={3}>
         {summaries.map((club) => (
-          <Grid key={club.id} size={{ xs: 12, sm: 6, md: 4 }}>
+          <Grid key={club.id} xs={12} sm={6} md={4}>
             <Card sx={{ borderRadius: 3, height: '100%' }}>
               <CardActionArea
                 component={RouterLink}
