@@ -13,7 +13,6 @@ import {
   Stack,
   TextField,
   Typography,
-  Unstable_Grid2 as Grid,
 } from '@mui/material'
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
@@ -82,43 +81,47 @@ export const ClubOverviewPage = () => {
         </Button>
       </Stack>
 
-      <Grid container spacing={3}>
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 3,
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+        }}
+      >
         {summaries.map((club) => (
-          <Grid key={club.id} xs={12} sm={6} md={4}>
-            <Card sx={{ borderRadius: 3, height: '100%' }}>
-              <CardActionArea
-                component={RouterLink}
-                to={`/clubs/${club.id}`}
-                onClick={() => selectClub(club.id)}
-                sx={{ height: '100%' }}
-              >
-                <CardContent>
-                  <Box
-                    sx={{
-                      height: 120,
-                      borderRadius: 2,
-                      mb: 3,
-                      background: `linear-gradient(135deg, ${club.theme.primaryColor}, ${club.theme.secondaryColor})`,
-                    }}
-                  />
-                  <Typography variant="h6" fontWeight={700} gutterBottom>
-                    {club.name}
+          <Card key={club.id} sx={{ borderRadius: 3, height: '100%' }}>
+            <CardActionArea
+              component={RouterLink}
+              to={`/clubs/${club.id}`}
+              onClick={() => selectClub(club.id)}
+              sx={{ height: '100%' }}
+            >
+              <CardContent>
+                <Box
+                  sx={{
+                    height: 120,
+                    borderRadius: 2,
+                    mb: 3,
+                    background: `linear-gradient(135deg, ${club.theme.primaryColor}, ${club.theme.secondaryColor})`,
+                  }}
+                />
+                <Typography variant="h6" fontWeight={700} gutterBottom>
+                  {club.name}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  {club.slug}
+                </Typography>
+                <Stack direction="row" alignItems="center" spacing={1} mt={2}>
+                  <Typography variant="body2" fontWeight={600}>
+                    {club.templatesCount} дизайнов
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    {club.slug}
-                  </Typography>
-                  <Stack direction="row" alignItems="center" spacing={1} mt={2}>
-                    <Typography variant="body2" fontWeight={600}>
-                      {club.templatesCount} дизайнов
-                    </Typography>
-                    <ArrowForwardRoundedIcon fontSize="small" color="primary" />
-                  </Stack>
-                </CardContent>
-              </CardActionArea>
-            </Card>
-          </Grid>
+                  <ArrowForwardRoundedIcon fontSize="small" color="primary" />
+                </Stack>
+              </CardContent>
+            </CardActionArea>
+          </Card>
         ))}
-      </Grid>
+      </Box>
 
       <Dialog open={isDialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Создать новый клуб</DialogTitle>

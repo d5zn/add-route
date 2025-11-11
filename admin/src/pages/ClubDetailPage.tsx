@@ -8,7 +8,6 @@ import {
   Chip,
   Stack,
   Typography,
-  Unstable_Grid2 as Grid,
 } from '@mui/material'
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import EditRoundedIcon from '@mui/icons-material/EditRounded'
@@ -98,42 +97,46 @@ export const ClubDetailPage = () => {
         <Typography variant="h5" fontWeight={700} gutterBottom>
           Дизайны
         </Typography>
-        <Grid container spacing={3}>
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 3,
+            gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+          }}
+        >
           {templates.map((template) => (
-            <Grid key={template.id} xs={12} md={6} lg={4}>
-              <Card sx={{ borderRadius: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                    Версия {template.version ?? 1}
-                  </Typography>
-                  <Typography variant="h6" fontWeight={700} gutterBottom>
-                    {template.name}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    {template.status === 'published' ? 'Опубликован' : 'Черновик'}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Обновлен {template.updatedAt ? new Date(template.updatedAt).toLocaleDateString('ru-RU') : '—'}
-                  </Typography>
-                </CardContent>
-                <CardActions sx={{ px: 3, pb: 3, pt: 0 }}>
-                  <Button
-                    component={RouterLink}
-                    to={`/clubs/${club.id}/templates/${template.id}`}
-                    variant="contained"
-                    startIcon={<LaunchRoundedIcon />}
-                    fullWidth
-                  >
-                    Открыть
-                  </Button>
-                  <Button variant="text" startIcon={<EditRoundedIcon />} disabled>
-                    Редактировать описание
-                  </Button>
-                </CardActions>
-              </Card>
-            </Grid>
+            <Card key={template.id} sx={{ borderRadius: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <CardContent sx={{ flexGrow: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Версия {template.version ?? 1}
+                </Typography>
+                <Typography variant="h6" fontWeight={700} gutterBottom>
+                  {template.name}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  {template.status === 'published' ? 'Опубликован' : 'Черновик'}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Обновлен {template.updatedAt ? new Date(template.updatedAt).toLocaleDateString('ru-RU') : '—'}
+                </Typography>
+              </CardContent>
+              <CardActions sx={{ px: 3, pb: 3, pt: 0 }}>
+                <Button
+                  component={RouterLink}
+                  to={`/clubs/${club.id}/templates/${template.id}`}
+                  variant="contained"
+                  startIcon={<LaunchRoundedIcon />}
+                  fullWidth
+                >
+                  Открыть
+                </Button>
+                <Button variant="text" startIcon={<EditRoundedIcon />} disabled>
+                  Редактировать описание
+                </Button>
+              </CardActions>
+            </Card>
           ))}
-        </Grid>
+        </Box>
       </Box>
     </Box>
   )
