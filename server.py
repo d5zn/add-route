@@ -1486,13 +1486,16 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             rel_path = 'index.html'
 
         if not self.is_admin_authenticated():
-            if rel_path == 'index.html':
+            if rel_path == 'index.html' or not rel_path:
                 self.send_admin_login_page()
                 return True
             if rel_path.startswith('api/'):
                 self.handle_admin_login()
                 return True
-            self.send_admin_login_page()
+            # Redirect deep links to base admin page for login
+            self.send_response(302)
+            self.send_header('Location', '/route/admin/')
+            self.end_headers()
             return True
 
         candidate_path = os.path.join(ADMIN_DIST_DIR, rel_path)

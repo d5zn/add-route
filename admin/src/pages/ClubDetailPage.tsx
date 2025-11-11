@@ -105,7 +105,24 @@ export const ClubDetailPage = () => {
           }}
         >
           {templates.map((template) => (
-            <Card key={template.id} sx={{ borderRadius: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Card
+              key={template.id}
+              sx={{
+                borderRadius: 3,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                background: 'rgba(15, 23, 42, 0.85)',
+                backdropFilter: 'blur(12px)',
+                boxShadow: '0 18px 60px rgba(15, 23, 42, 0.45)',
+                border: '1px solid rgba(148, 163, 184, 0.2)',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 24px 80px rgba(59, 130, 246, 0.25)',
+                },
+              }}
+            >
               <CardContent sx={{ flexGrow: 1 }}>
                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                   Версия {template.version ?? 1}

@@ -89,7 +89,22 @@ export const ClubOverviewPage = () => {
         }}
       >
         {summaries.map((club) => (
-          <Card key={club.id} sx={{ borderRadius: 3, height: '100%' }}>
+          <Card
+            key={club.id}
+            sx={{
+              borderRadius: 3,
+              height: '100%',
+              background: 'rgba(15, 23, 42, 0.85)',
+              backdropFilter: 'blur(12px)',
+              boxShadow: '0 18px 60px rgba(15, 23, 42, 0.45)',
+              border: '1px solid rgba(148, 163, 184, 0.2)',
+              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: '0 24px 80px rgba(59, 130, 246, 0.25)',
+              },
+            }}
+          >
             <CardActionArea
               component={RouterLink}
               to={`/clubs/${club.id}`}
@@ -103,6 +118,7 @@ export const ClubOverviewPage = () => {
                     borderRadius: 2,
                     mb: 3,
                     background: `linear-gradient(135deg, ${club.theme.primaryColor}, ${club.theme.secondaryColor})`,
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
                   }}
                 />
                 <Typography variant="h6" fontWeight={700} gutterBottom>
