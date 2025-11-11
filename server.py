@@ -10,6 +10,8 @@ import webbrowser
 import os
 import json
 import secrets
+import hmac
+import hashlib
 import time
 from datetime import datetime
 from collections import defaultdict
@@ -19,7 +21,10 @@ from http.cookies import SimpleCookie
 ADMIN_DIST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'admin', 'dist')
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '54321')
-ADMIN_SESSIONS = {}
+ADMIN_SESSION_SECRET = os.environ.get('ADMIN_SESSION_SECRET', 'change-this-secret')
+
+if ADMIN_SESSION_SECRET == 'change-this-secret':
+    print("⚠️ ADMIN_SESSION_SECRET is using the default value. Set the env var for production security.", flush=True)
 
 ADMIN_LOGIN_PAGE = """<!DOCTYPE html>
 <html lang="en">
@@ -674,18 +679,49 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         morsel = cookie.get(self.ADMIN_SESSION_COOKIE)
         return morsel.value if morsel else None
 
+    def create_admin_session_token(self, username):
+        issued_at = int(time.time())
+        nonce = secrets.token_hex(16)
+        payload = f"{username}|{issued_at}|{nonce}"
+        signature = hmac.new(ADMIN_SESSION_SECRET.encode('utf-8'), payload.encode('utf-8'), hashlib.sha256).hexdigest()
+        return f"{payload}|{signature}"
+
+    def validate_admin_session_token(self, token):
+        if not token:
+            return False, None
+        try:
+            username, issued_at_str, nonce, signature = token.split('|')
+        except ValueError:
+            return False, None
+
+        payload = f"{username}|{issued_at_str}|{nonce}"
+        expected_signature = hmac.new(
+            ADMIN_SESSION_SECRET.encode('utf-8'),
+            payload.encode('utf-8'),
+            hashlib.sha256,
+        ).hexdigest()
+
+        if not hmac.compare_digest(signature, expected_signature):
+            return False, None
+
+        try:
+            issued_at = int(issued_at_str)
+        except ValueError:
+            return False, None
+
+        if issued_at + self.ADMIN_SESSION_TTL < time.time():
+            return False, None
+
+        return True, username
+
     def is_admin_authenticated(self):
         token = self.get_admin_session_token()
-        if not token:
-            return False
-        session = ADMIN_SESSIONS.get(token)
-        if not session:
-            return False
-        expires_at = session.get('expires_at')
-        if expires_at and expires_at < time.time():
-            ADMIN_SESSIONS.pop(token, None)
-            return False
-        return True
+        is_valid, username = self.validate_admin_session_token(token)
+        if is_valid:
+            self.current_admin_user = username
+        else:
+            self.current_admin_user = None
+        return is_valid
 
     def set_admin_session_cookie(self, token):
         cookie = SimpleCookie()
@@ -737,9 +773,7 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps({'error': 'Invalid credentials'}).encode('utf-8'))
             return
 
-        token = secrets.token_urlsafe(32)
-        ADMIN_SESSIONS[token] = {'created_at': time.time(), 'expires_at': time.time() + self.ADMIN_SESSION_TTL}
-
+        token = self.create_admin_session_token(username)
         self.send_response(200)
         self.set_admin_session_cookie(token)
         self.send_header('Content-Type', 'application/json')
@@ -747,9 +781,6 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(json.dumps({'status': 'ok'}).encode('utf-8'))
 
     def handle_admin_logout(self):
-        token = self.get_admin_session_token()
-        if token:
-            ADMIN_SESSIONS.pop(token, None)
         self.send_response(200)
         self.clear_admin_session_cookie()
         self.send_header('Content-Type', 'application/json')
