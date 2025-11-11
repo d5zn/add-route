@@ -78,6 +78,7 @@ ADMIN_LOGIN_PAGE = """<!DOCTYPE html>
             try {
                 const response = await fetch('/route/admin/api/login', {
                     method: 'POST',
+                    credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
