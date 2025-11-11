@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Box, CircularProgress, Stack, Typography } from '@mui/material'
 import { useParams } from 'react-router-dom'
 import { useClubStore } from '../store/useClubStore'
-import { useEditorActions } from '../store/useEditorStore'
+import { useEditorActions, useTemplate as useEditorTemplate } from '../store/useEditorStore'
 import { ElementListPanel } from '../components/sidebar/ElementListPanel'
 import { EditorCanvas } from '../components/canvas/EditorCanvas'
 import { InspectorPanel } from '../components/inspector/InspectorPanel'
@@ -13,6 +13,7 @@ export const TemplateEditorPage = () => {
   const template = useClubStore((store) =>
     store.templates.find((item) => item.id === templateId && item.clubId === clubId),
   )
+  const editorTemplate = useEditorTemplate()
   const { setTemplate } = useEditorActions()
 
   useEffect(() => {
@@ -21,12 +22,19 @@ export const TemplateEditorPage = () => {
     }
   }, [clubId, selectClub])
 
+  const editorTemplateId = editorTemplate?.id
+
   useEffect(() => {
-    if (template) {
-      const cloned = JSON.parse(JSON.stringify(template)) as typeof template
-      setTemplate(cloned)
+    if (!template) return
+    if (editorTemplateId && editorTemplateId === template.id) {
+      return
     }
-  }, [template, setTemplate])
+    if (import.meta.env.DEV) {
+      console.count('TemplateEditorPage setTemplate effect')
+    }
+    const cloned = JSON.parse(JSON.stringify(template)) as typeof template
+    setTemplate(cloned)
+  }, [template, editorTemplateId, setTemplate])
 
   if (!template) {
     return (
