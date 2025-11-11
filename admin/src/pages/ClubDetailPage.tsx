@@ -51,6 +51,13 @@ export const ClubDetailPage = () => {
     navigate(`/clubs/${club.id}/templates/${template.id}`)
   }
 
+  const theme = {
+    primaryColor: club.theme?.primaryColor ?? '#222222',
+    secondaryColor: club.theme?.secondaryColor ?? '#222222',
+    accentColor: club.theme?.accentColor ?? '#222222',
+    backgroundColor: club.theme?.backgroundColor ?? '#000000',
+  }
+
   return (
     <Box px={6} py={5} display="flex" flexDirection="column" gap={4} height="100%" overflow="auto">
       <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -72,7 +79,7 @@ export const ClubDetailPage = () => {
         sx={{
           borderRadius: 0,
           p: 4,
-          background: '#000000',
+          background: theme.backgroundColor,
           border: '1px solid #222222',
           color: '#fff',
         }}
@@ -96,7 +103,10 @@ export const ClubDetailPage = () => {
             gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
           }}
         >
-          {templates.map((template) => (
+          {templates.map((template) => {
+            const cardBorderColor = '#222222'
+
+            return (
             <Card
               key={template.id}
               sx={{
@@ -133,13 +143,13 @@ export const ClubDetailPage = () => {
                   variant="outlined"
                   startIcon={<LaunchRoundedIcon />}
                   fullWidth
-                  sx={{ borderColor: '#222222', color: '#FFFFFF', '&:hover': { borderColor: '#444444' } }}
+                  sx={{ borderColor: cardBorderColor, color: '#FFFFFF', '&:hover': { borderColor: '#444444' } }}
                 >
                   Открыть
                 </Button>
               </CardActions>
             </Card>
-          ))}
+          )})}
         </Box>
       </Box>
     </Box>

@@ -88,7 +88,12 @@ export const ClubOverviewPage = () => {
           gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
         }}
       >
-        {summaries.map((club) => (
+        {summaries.map((club) => {
+          const theme = {
+            primaryColor: club.theme?.primaryColor ?? '#222222',
+          }
+
+          return (
           <Card
             key={club.id}
             sx={{
@@ -114,7 +119,7 @@ export const ClubOverviewPage = () => {
                     height: 120,
                     borderRadius: 0,
                     mb: 3,
-                    background: club.theme.primaryColor,
+                    background: theme.primaryColor,
                   }}
                 />
                 <Typography variant="h6" fontWeight={300} gutterBottom>
@@ -132,7 +137,7 @@ export const ClubOverviewPage = () => {
               </CardContent>
             </CardActionArea>
           </Card>
-        ))}
+        )})}
       </Box>
 
       <Dialog open={isDialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
