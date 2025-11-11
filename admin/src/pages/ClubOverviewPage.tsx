@@ -69,7 +69,7 @@ export const ClubOverviewPage = () => {
     <Box px={6} py={5} display="flex" flexDirection="column" gap={4} height="100%" overflow="auto">
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Box>
-          <Typography variant="h4" fontWeight={700} gutterBottom>
+          <Typography variant="h4" fontWeight={300} gutterBottom>
             Клубы
           </Typography>
           <Typography variant="body1" color="text.secondary">
@@ -92,16 +92,13 @@ export const ClubOverviewPage = () => {
           <Card
             key={club.id}
             sx={{
-              borderRadius: 3,
+              borderRadius: 0,
               height: '100%',
-              background: 'rgba(15, 23, 42, 0.85)',
-              backdropFilter: 'blur(12px)',
-              boxShadow: '0 18px 60px rgba(15, 23, 42, 0.45)',
-              border: '1px solid rgba(148, 163, 184, 0.2)',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              background: '#000000',
+              border: '1px solid #222222',
+              transition: 'border-color 0.2s ease',
               '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 24px 80px rgba(59, 130, 246, 0.25)',
+                borderColor: '#444444',
               },
             }}
           >
@@ -115,23 +112,22 @@ export const ClubOverviewPage = () => {
                 <Box
                   sx={{
                     height: 120,
-                    borderRadius: 2,
+                    borderRadius: 0,
                     mb: 3,
-                    background: `linear-gradient(135deg, ${club.theme.primaryColor}, ${club.theme.secondaryColor})`,
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                    background: club.theme.primaryColor,
                   }}
                 />
-                <Typography variant="h6" fontWeight={700} gutterBottom>
+                <Typography variant="h6" fontWeight={300} gutterBottom>
                   {club.name}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   {club.slug}
                 </Typography>
                 <Stack direction="row" alignItems="center" spacing={1} mt={2}>
-                  <Typography variant="body2" fontWeight={600}>
+                  <Typography variant="body2" fontWeight={300}>
                     {club.templatesCount} дизайнов
                   </Typography>
-                  <ArrowForwardRoundedIcon fontSize="small" color="primary" />
+                  <ArrowForwardRoundedIcon fontSize="small" sx={{ color: '#888888' }} />
                 </Stack>
               </CardContent>
             </CardActionArea>

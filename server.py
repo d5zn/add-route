@@ -1489,14 +1489,16 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             if rel_path == 'index.html' or not rel_path:
                 self.send_admin_login_page()
                 return True
-            if rel_path.startswith('api/'):
-                self.handle_admin_login()
+            # Allow assets (js, css, etc.) to be served even without auth for login page
+            if rel_path.startswith('assets/') or rel_path.endswith(('.js', '.css', '.svg', '.png', '.jpg', '.ico', '.woff', '.woff2')):
+                # Continue to serve the asset below
+                pass
+            else:
+                # Redirect deep links to base admin page for login
+                self.send_response(302)
+                self.send_header('Location', '/route/admin/')
+                self.end_headers()
                 return True
-            # Redirect deep links to base admin page for login
-            self.send_response(302)
-            self.send_header('Location', '/route/admin/')
-            self.end_headers()
-            return True
 
         candidate_path = os.path.join(ADMIN_DIST_DIR, rel_path)
 

@@ -20,10 +20,8 @@ export const Topbar = () => {
       position="static"
       elevation={0}
       sx={{
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-        background: 'rgba(15, 23, 42, 0.92)',
-        backdropFilter: 'blur(12px)',
+        borderBottom: '1px solid #222222',
+        background: '#000000',
       }}
     >
       <Toolbar sx={{ justifyContent: 'space-between', gap: 4 }}>

@@ -4,28 +4,28 @@ export const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#3B82F6',
+      main: '#FFFFFF',
     },
     secondary: {
-      main: '#F97316',
+      main: '#888888',
     },
     background: {
-      default: '#0f172a',
-      paper: 'rgba(15, 23, 42, 0.85)',
+      default: '#000000',
+      paper: '#000000',
     },
     text: {
-      primary: '#F8FAFC',
-      secondary: 'rgba(248, 250, 252, 0.7)',
+      primary: '#FFFFFF',
+      secondary: '#888888',
     },
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 0,
   },
   typography: {
     fontFamily: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'].join(','),
     button: {
       textTransform: 'none',
-      fontWeight: 600,
+      fontWeight: 300,
     },
   },
 })

@@ -64,7 +64,7 @@ export const ClubDetailPage = () => {
     <Box px={6} py={5} display="flex" flexDirection="column" gap={4} height="100%" overflow="auto">
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Box>
-          <Typography variant="h4" fontWeight={700} gutterBottom>
+          <Typography variant="h4" fontWeight={300} gutterBottom>
             {club.name}
           </Typography>
           <Stack direction="row" spacing={2} alignItems="center">
@@ -79,22 +79,23 @@ export const ClubDetailPage = () => {
 
       <Box
         sx={{
-          borderRadius: 3,
+          borderRadius: 0,
           p: 4,
-          background: `linear-gradient(135deg, ${theme.primaryColor}, ${theme.secondaryColor})`,
+          background: '#000000',
+          border: '1px solid #222222',
           color: '#fff',
         }}
       >
-        <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+        <Typography variant="subtitle1" fontWeight={300} gutterBottom>
           Настройки клуба
         </Typography>
-        <Typography variant="body2" sx={{ maxWidth: 480 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 480 }}>
           {club.description || 'Добавьте описание, чтобы команда понимала tone of voice и специфику клуба.'}
         </Typography>
       </Box>
 
       <Box>
-        <Typography variant="h5" fontWeight={700} gutterBottom>
+        <Typography variant="h5" fontWeight={300} gutterBottom>
           Дизайны
         </Typography>
         <Box
@@ -108,18 +109,15 @@ export const ClubDetailPage = () => {
             <Card
               key={template.id}
               sx={{
-                borderRadius: 3,
+                borderRadius: 0,
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                background: 'rgba(15, 23, 42, 0.85)',
-                backdropFilter: 'blur(12px)',
-                boxShadow: '0 18px 60px rgba(15, 23, 42, 0.45)',
-                border: '1px solid rgba(148, 163, 184, 0.2)',
-                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                background: '#000000',
+                border: '1px solid #222222',
+                transition: 'border-color 0.2s ease',
                 '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: '0 24px 80px rgba(59, 130, 246, 0.25)',
+                  borderColor: '#444444',
                 },
               }}
             >
@@ -127,7 +125,7 @@ export const ClubDetailPage = () => {
                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                   Версия {template.version ?? 1}
                 </Typography>
-                <Typography variant="h6" fontWeight={700} gutterBottom>
+                <Typography variant="h6" fontWeight={300} gutterBottom>
                   {template.name}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -141,14 +139,12 @@ export const ClubDetailPage = () => {
                 <Button
                   component={RouterLink}
                   to={`/clubs/${club.id}/templates/${template.id}`}
-                  variant="contained"
+                  variant="outlined"
                   startIcon={<LaunchRoundedIcon />}
                   fullWidth
+                  sx={{ borderColor: '#222222', color: '#FFFFFF', '&:hover': { borderColor: '#444444' } }}
                 >
                   Открыть
-                </Button>
-                <Button variant="text" startIcon={<EditRoundedIcon />} disabled>
-                  Редактировать описание
                 </Button>
               </CardActions>
             </Card>

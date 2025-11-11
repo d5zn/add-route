@@ -9,8 +9,8 @@ export const AppShell = () => {
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        background: 'radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.18), transparent 55%), radial-gradient(circle at 100% 0%, rgba(230, 68, 0, 0.18), transparent 55%), linear-gradient(180deg, #040711 0%, #0f172a 30%, #0b1120 100%)',
-        color: '#F8FAFC',
+        background: '#000000',
+        color: '#FFFFFF',
       }}
     >
       <Topbar />
