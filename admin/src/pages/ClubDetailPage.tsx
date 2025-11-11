@@ -10,7 +10,6 @@ import {
   Typography,
 } from '@mui/material'
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
-import EditRoundedIcon from '@mui/icons-material/EditRounded'
 import LaunchRoundedIcon from '@mui/icons-material/LaunchRounded'
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom'
 import { useClubStore, useClubTemplates } from '../store/useClubStore'
@@ -47,17 +46,9 @@ export const ClubDetailPage = () => {
     const template = createTemplate({
       clubId: club.id,
       name: `${club.name} Новый дизайн`,
-      background: { color: club.theme.backgroundColor },
+      background: { color: club.theme?.backgroundColor ?? '#000000' },
     })
     navigate(`/clubs/${club.id}/templates/${template.id}`)
-  }
-
-  const theme = club.theme ?? {
-    primaryColor: '#2563EB',
-    secondaryColor: '#F97316',
-    accentColor: '#22D3EE',
-    backgroundColor: '#0F172A',
-    fontFamily: 'Inter',
   }
 
   return (
