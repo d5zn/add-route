@@ -6,6 +6,7 @@ export default defineConfig({
   base: '/route/admin/',
   plugins: [react()],
   build: {
+    sourcemap: true,
     rollupOptions: {
       output: {
         manualChunks: {
