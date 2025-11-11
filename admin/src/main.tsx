@@ -9,6 +9,7 @@ import './index.css'
 import { ClubOverviewPage } from './pages/ClubOverviewPage.tsx'
 import { ClubDetailPage } from './pages/ClubDetailPage.tsx'
 import { TemplateEditorPage } from './pages/TemplateEditorPage.tsx'
+import { ErrorPage } from './pages/ErrorPage.tsx'
 
 const queryClient = new QueryClient()
 
@@ -25,6 +26,7 @@ const router = createBrowserRouter(
         { path: 'clubs/:clubId', element: <ClubDetailPage /> },
         { path: 'clubs/:clubId/templates/:templateId', element: <TemplateEditorPage /> },
       ],
+      errorElement: <ErrorPage />,
     },
   ],
   { basename },
