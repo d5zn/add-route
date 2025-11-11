@@ -10,6 +10,7 @@ import { InspectorPanel } from '../components/inspector/InspectorPanel'
 export const TemplateEditorPage = () => {
   const { clubId, templateId } = useParams()
   const selectClub = useClubStore((store) => store.selectClub)
+  const selectedClubId = useClubStore((store) => store.selectedClubId)
   const template = useClubStore((store) =>
     store.templates.find((item) => item.id === templateId && item.clubId === clubId),
   )
@@ -17,10 +18,10 @@ export const TemplateEditorPage = () => {
   const { setTemplate } = useEditorActions()
 
   useEffect(() => {
-    if (clubId) {
+    if (clubId && clubId !== selectedClubId) {
       selectClub(clubId)
     }
-  }, [clubId, selectClub])
+  }, [clubId, selectClub, selectedClubId])
 
   const editorTemplateId = editorTemplate?.id
 

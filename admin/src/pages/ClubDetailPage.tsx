@@ -20,14 +20,15 @@ export const ClubDetailPage = () => {
 
   const club = useClubStore((store) => store.clubs.find((item) => item.id === clubId))
   const selectClub = useClubStore((store) => store.selectClub)
+  const selectedClubId = useClubStore((store) => store.selectedClubId)
   const createTemplate = useClubStore((store) => store.createTemplate)
   const templates = useClubTemplates(clubId)
 
   useEffect(() => {
-    if (clubId) {
+    if (clubId && clubId !== selectedClubId) {
       selectClub(clubId)
     }
-  }, [clubId, selectClub])
+  }, [clubId, selectClub, selectedClubId])
 
   if (!club) {
     return (
