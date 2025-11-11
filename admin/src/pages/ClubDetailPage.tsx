@@ -9,7 +9,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
-import Grid from '@mui/material/Grid'
+import Grid from '@mui/material/Unstable_Grid2'
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import EditRoundedIcon from '@mui/icons-material/EditRounded'
 import LaunchRoundedIcon from '@mui/icons-material/LaunchRounded'
@@ -53,6 +53,14 @@ export const ClubDetailPage = () => {
     navigate(`/clubs/${club.id}/templates/${template.id}`)
   }
 
+  const theme = club.theme ?? {
+    primaryColor: '#2563EB',
+    secondaryColor: '#F97316',
+    accentColor: '#22D3EE',
+    backgroundColor: '#0F172A',
+    fontFamily: 'Inter',
+  }
+
   return (
     <Box px={6} py={5} display="flex" flexDirection="column" gap={4} height="100%" overflow="auto">
       <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -74,7 +82,7 @@ export const ClubDetailPage = () => {
         sx={{
           borderRadius: 3,
           p: 4,
-          background: `linear-gradient(135deg, ${club.theme.primaryColor}, ${club.theme.secondaryColor})`,
+          background: `linear-gradient(135deg, ${theme.primaryColor}, ${theme.secondaryColor})`,
           color: '#fff',
         }}
       >
@@ -92,11 +100,11 @@ export const ClubDetailPage = () => {
         </Typography>
         <Grid container spacing={3}>
           {templates.map((template) => (
-            <Grid key={template.id} size={{ xs: 12, md: 6, lg: 4 }}>
+            <Grid key={template.id} xs={12} md={6} lg={4}>
               <Card sx={{ borderRadius: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                    Версия {template.version}
+                    Версия {template.version ?? 1}
                   </Typography>
                   <Typography variant="h6" fontWeight={700} gutterBottom>
                     {template.name}
@@ -105,7 +113,7 @@ export const ClubDetailPage = () => {
                     {template.status === 'published' ? 'Опубликован' : 'Черновик'}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Обновлен {new Date(template.updatedAt).toLocaleDateString('ru-RU')}
+                    Обновлен {template.updatedAt ? new Date(template.updatedAt).toLocaleDateString('ru-RU') : '—'}
                   </Typography>
                 </CardContent>
                 <CardActions sx={{ px: 3, pb: 3, pt: 0 }}>

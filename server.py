@@ -1488,11 +1488,10 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             if rel_path == 'index.html':
                 self.send_admin_login_page()
                 return True
-            # Allow login API to be handled elsewhere
             if rel_path.startswith('api/'):
-                self.send_error(401, 'Authentication required')
+                self.handle_admin_login()
                 return True
-            self.send_error(401, 'Authentication required')
+            self.send_admin_login_page()
             return True
 
         candidate_path = os.path.join(ADMIN_DIST_DIR, rel_path)
