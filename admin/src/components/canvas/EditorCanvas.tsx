@@ -70,10 +70,12 @@ export const EditorCanvas = () => {
     
     updateUi((ui) => {
       ui.zoom = fitZoom
-      // Center the canvas (accounting for stage padding)
+      // Center the canvas - pan should position the stage so canvas is centered
+      const scaledWidth = page.size.width * fitZoom
+      const scaledHeight = page.size.height * fitZoom
       ui.pan = {
-        x: (containerSize.width - page.size.width * fitZoom) / 2 - CANVAS_PADDING - stagePadding,
-        y: (containerSize.height - page.size.height * fitZoom) / 2 - CANVAS_PADDING - stagePadding,
+        x: (containerSize.width - scaledWidth) / 2,
+        y: (containerSize.height - scaledHeight) / 2,
       }
     })
   }, [page, containerSize, updateUi])
@@ -120,9 +122,6 @@ export const EditorCanvas = () => {
     return <Box flex={1} display="flex" alignItems="center" justifyContent="center">Нет страницы</Box>
   }
 
-  // Make stage larger to allow panning without clipping
-  const stagePadding = 200
-
   const handleElementRef = (id: string, node: Konva.Node | null) => {
     if (node) {
       elementRefs.current[id] = node
@@ -144,14 +143,13 @@ export const EditorCanvas = () => {
     const mouseX = e.clientX - rect.left
     const mouseY = e.clientY - rect.top
     
-    // Calculate zoom point relative to canvas
-    const canvasX = mouseX - CANVAS_PADDING - ui.pan.x
-    const canvasY = mouseY - CANVAS_PADDING - ui.pan.y
+    // Calculate zoom point relative to canvas (accounting for pan and padding)
+    const canvasX = (mouseX - ui.pan.x - CANVAS_PADDING) / ui.zoom
+    const canvasY = (mouseY - ui.pan.y - CANVAS_PADDING) / ui.zoom
     
     // Calculate new pan to keep the zoom point under the mouse
-    const zoomRatio = newZoom / ui.zoom
-    const newPanX = mouseX - CANVAS_PADDING - canvasX * zoomRatio
-    const newPanY = mouseY - CANVAS_PADDING - canvasY * zoomRatio
+    const newPanX = mouseX - canvasX * newZoom - CANVAS_PADDING
+    const newPanY = mouseY - canvasY * newZoom - CANVAS_PADDING
     
     updateUi((ui) => {
       ui.zoom = newZoom
@@ -341,12 +339,9 @@ export const EditorCanvas = () => {
         }}
         width={containerSize.width || 800}
         height={containerSize.height || 600}
-        x={ui.pan.x + stagePadding}
-        y={ui.pan.y + stagePadding}
+        x={ui.pan.x}
+        y={ui.pan.y}
         style={{ 
-          position: 'absolute',
-          top: 0,
-          left: 0,
           background: 'transparent',
         }}
         onMouseDown={(event) => {
