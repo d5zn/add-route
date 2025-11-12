@@ -1045,6 +1045,11 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.handle_admin_save_template(template_id)
                 return
         
+        # Admin import templates endpoint (temporary, for one-time import)
+        if self.path == '/route/admin/api/import-templates':
+            self.handle_admin_import_templates()
+            return
+        
         # OAuth token exchange (works for both root and /route/)
         if self.path == '/api/strava/token' or self.path == '/route/api/strava/token':
             self.handle_token_exchange()
@@ -1746,6 +1751,60 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             print(f"❌ Error in admin template endpoint: {e}")
             self.send_error(500, 'Internal server error')
+    
+    def handle_admin_import_templates(self):
+        """Handle template import endpoint - runs import script"""
+        if not self.is_admin_authenticated():
+            self.send_error(401, 'Unauthorized')
+            return
+        
+        try:
+            # Import and run the import script
+            import subprocess
+            import sys
+            import os
+            
+            script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'import_templates.py')
+            
+            if not os.path.exists(script_path):
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'Import script not found'}).encode())
+                return
+            
+            # Run the import script
+            result = subprocess.run(
+                [sys.executable, script_path],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            
+            response = {
+                'success': result.returncode == 0,
+                'stdout': result.stdout,
+                'stderr': result.stderr,
+                'returncode': result.returncode
+            }
+            
+            self.wfile.write(json.dumps(response, indent=2).encode())
+            
+        except subprocess.TimeoutExpired:
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Import script timed out'}).encode())
+        except Exception as e:
+            print(f"❌ Error running import script: {e}")
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(e)}).encode())
     
     def handle_admin_save_template(self, template_id):
         """Handle template save/update API endpoint"""
