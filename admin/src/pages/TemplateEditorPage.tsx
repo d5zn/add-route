@@ -17,6 +17,7 @@ export const TemplateEditorPage = () => {
   const editorTemplate = useEditorTemplate()
   const setTemplate = useEditorStore((store) => store.setTemplate)
   const lastTemplateIdRef = useRef<string | null>(null)
+  const isSettingRef = useRef(false)
 
   useEffect(() => {
     if (clubId && clubId !== selectedClubId) {
@@ -26,8 +27,10 @@ export const TemplateEditorPage = () => {
   }, [clubId, selectedClubId])
 
   useEffect(() => {
-    if (!template || !templateId) {
+    // Используем только templateId из URL для отслеживания изменений
+    if (!templateId) {
       lastTemplateIdRef.current = null
+      isSettingRef.current = false
       return
     }
     
@@ -36,9 +39,22 @@ export const TemplateEditorPage = () => {
       return
     }
     
-    const editorTemplateId = editorTemplate?.id
-    if (editorTemplateId && editorTemplateId === templateId) {
+    // Если уже устанавливаем шаблон, не запускаем снова
+    if (isSettingRef.current) {
+      return
+    }
+    
+    // Если шаблон еще не загружен, ждем
+    if (!template) {
+      return
+    }
+    
+    // Если шаблон уже установлен в редакторе, не устанавливаем снова
+    // Проверяем editorTemplateId внутри эффекта, но не добавляем в зависимости
+    const currentEditorTemplateId = editorTemplate?.id
+    if (currentEditorTemplateId && currentEditorTemplateId === templateId) {
       lastTemplateIdRef.current = templateId
+      isSettingRef.current = false
       return
     }
     
@@ -46,11 +62,21 @@ export const TemplateEditorPage = () => {
       console.count('TemplateEditorPage setTemplate effect')
     }
     
+    isSettingRef.current = true
     const cloned = JSON.parse(JSON.stringify(template)) as typeof template
     setTemplate(cloned)
     lastTemplateIdRef.current = templateId
+    
+    // Сбрасываем флаг после небольшой задержки, чтобы избежать повторных вызовов
+    const timeoutId = setTimeout(() => {
+      isSettingRef.current = false
+    }, 100)
+    
+    return () => {
+      clearTimeout(timeoutId)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templateId, template?.id])
+  }, [templateId])
 
   if (!template) {
     return (

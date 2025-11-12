@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
+import { useShallow } from 'zustand/react/shallow'
 import { nanoid } from 'nanoid'
 import type { Club, ClubSummary, Template } from '../types/index.ts'
 import { mockClubs, mockTemplates } from '../data/mockClubs.ts'
@@ -150,7 +151,11 @@ export const useSelectedClub = () => {
   return clubs.find((club) => club.id === selectedClubId) ?? null
 }
 
-export const useClubTemplates = (clubId?: string | null) =>
-  useClubStore((store) =>
-    store.templates.filter((template) => (clubId ? template.clubId === clubId : true)),
+export const useClubTemplates = (clubId?: string | null) => {
+  return useClubStore(
+    useShallow((store) => {
+      if (!clubId) return store.templates
+      return store.templates.filter((template) => template.clubId === clubId)
+    }),
   )
+}
