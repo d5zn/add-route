@@ -30,10 +30,6 @@ export const NativeCanvasEditor = () => {
   const moveElement = useEditorStore((store) => store.moveElement)
 
   const page = template.pages.find((p) => p.id === pageId) || template.pages[0]
-  
-  // Calculate canvas dimensions based on aspect ratio
-  const canvasHeight = aspectRatio === '4:5' ? CANVAS_HEIGHT_4_5 : CANVAS_HEIGHT_9_16
-  const safeZoneTop = aspectRatio === '4:5' ? INSTAGRAM_SAFE_ZONE_TOP_4_5 : INSTAGRAM_SAFE_ZONE_TOP_9_16
 
   // Calculate fit-to-screen scale
   useEffect(() => {
@@ -383,6 +379,51 @@ export const NativeCanvasEditor = () => {
   )
 }
 
+function renderSafeZones(ctx: CanvasRenderingContext2D, canvasHeight: number, safeZoneTop: number) {
+  // Draw top safe zone (may be cut off in Instagram)
+  ctx.save()
+  ctx.fillStyle = 'rgba(255, 0, 0, 0.1)' // Semi-transparent red
+  ctx.fillRect(0, 0, CANVAS_WIDTH, safeZoneTop)
+  
+  // Draw bottom safe zone (may be cut off in Instagram)
+  ctx.fillRect(0, canvasHeight - INSTAGRAM_SAFE_ZONE_BOTTOM, CANVAS_WIDTH, INSTAGRAM_SAFE_ZONE_BOTTOM)
+  
+  // Draw border lines
+  ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)'
+  ctx.lineWidth = 2
+  ctx.setLineDash([5, 5])
+  
+  // Top border
+  ctx.beginPath()
+  ctx.moveTo(0, safeZoneTop)
+  ctx.lineTo(CANVAS_WIDTH, safeZoneTop)
+  ctx.stroke()
+  
+  // Bottom border
+  ctx.beginPath()
+  ctx.moveTo(0, canvasHeight - INSTAGRAM_SAFE_ZONE_BOTTOM)
+  ctx.lineTo(CANVAS_WIDTH, canvasHeight - INSTAGRAM_SAFE_ZONE_BOTTOM)
+  ctx.stroke()
+  
+  ctx.restore()
+  
+  // Add labels
+  ctx.save()
+  ctx.fillStyle = 'rgba(255, 0, 0, 0.8)'
+  ctx.font = '12px Inter'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.setLineDash([])
+  
+  // Top label
+  ctx.fillText('⚠️ Safe Zone Top', CANVAS_WIDTH / 2, safeZoneTop / 2)
+  
+  // Bottom label
+  ctx.fillText('⚠️ Safe Zone Bottom', CANVAS_WIDTH / 2, canvasHeight - INSTAGRAM_SAFE_ZONE_BOTTOM / 2)
+  
+  ctx.restore()
+}
+
 // Render functions
 function renderBackground(ctx: CanvasRenderingContext2D, page: Page, canvasHeight: number) {
   if (page.background?.gradient) {
@@ -469,51 +510,6 @@ function renderTextElement(ctx: CanvasRenderingContext2D, element: TextElement, 
     ctx.lineWidth = 2
     ctx.strokeRect(position.x - 2, position.y - 2, box.width + 4, box.height + 4)
   }
-}
-
-function renderSafeZones(ctx: CanvasRenderingContext2D) {
-  // Draw top safe zone (may be cut off in Instagram)
-  ctx.save()
-  ctx.fillStyle = 'rgba(255, 0, 0, 0.1)' // Semi-transparent red
-  ctx.fillRect(0, 0, CANVAS_WIDTH, INSTAGRAM_SAFE_ZONE_TOP)
-  
-  // Draw bottom safe zone (may be cut off in Instagram)
-  ctx.fillRect(0, CANVAS_HEIGHT - INSTAGRAM_SAFE_ZONE_BOTTOM, CANVAS_WIDTH, INSTAGRAM_SAFE_ZONE_BOTTOM)
-  
-  // Draw border lines
-  ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)'
-  ctx.lineWidth = 2
-  ctx.setLineDash([5, 5])
-  
-  // Top border
-  ctx.beginPath()
-  ctx.moveTo(0, INSTAGRAM_SAFE_ZONE_TOP)
-  ctx.lineTo(CANVAS_WIDTH, INSTAGRAM_SAFE_ZONE_TOP)
-  ctx.stroke()
-  
-  // Bottom border
-  ctx.beginPath()
-  ctx.moveTo(0, CANVAS_HEIGHT - INSTAGRAM_SAFE_ZONE_BOTTOM)
-  ctx.lineTo(CANVAS_WIDTH, CANVAS_HEIGHT - INSTAGRAM_SAFE_ZONE_BOTTOM)
-  ctx.stroke()
-  
-  ctx.restore()
-  
-  // Add labels
-  ctx.save()
-  ctx.fillStyle = 'rgba(255, 0, 0, 0.8)'
-  ctx.font = '12px Inter'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.setLineDash([])
-  
-  // Top label
-  ctx.fillText('⚠️ Safe Zone Top', CANVAS_WIDTH / 2, INSTAGRAM_SAFE_ZONE_TOP / 2)
-  
-  // Bottom label
-  ctx.fillText('⚠️ Safe Zone Bottom', CANVAS_WIDTH / 2, CANVAS_HEIGHT - INSTAGRAM_SAFE_ZONE_BOTTOM / 2)
-  
-  ctx.restore()
 }
 
 function renderShapeElement(ctx: CanvasRenderingContext2D, element: ShapeElement, isSelected: boolean) {
@@ -673,48 +669,4 @@ function renderImageElement(ctx: CanvasRenderingContext2D, element: ImageElement
   }
 }
 
-function renderSafeZones(ctx: CanvasRenderingContext2D) {
-  // Draw top safe zone (may be cut off in Instagram)
-  ctx.save()
-  ctx.fillStyle = 'rgba(255, 0, 0, 0.1)' // Semi-transparent red
-  ctx.fillRect(0, 0, CANVAS_WIDTH, INSTAGRAM_SAFE_ZONE_TOP)
-  
-  // Draw bottom safe zone (may be cut off in Instagram)
-  ctx.fillRect(0, CANVAS_HEIGHT - INSTAGRAM_SAFE_ZONE_BOTTOM, CANVAS_WIDTH, INSTAGRAM_SAFE_ZONE_BOTTOM)
-  
-  // Draw border lines
-  ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)'
-  ctx.lineWidth = 2
-  ctx.setLineDash([5, 5])
-  
-  // Top border
-  ctx.beginPath()
-  ctx.moveTo(0, INSTAGRAM_SAFE_ZONE_TOP)
-  ctx.lineTo(CANVAS_WIDTH, INSTAGRAM_SAFE_ZONE_TOP)
-  ctx.stroke()
-  
-  // Bottom border
-  ctx.beginPath()
-  ctx.moveTo(0, CANVAS_HEIGHT - INSTAGRAM_SAFE_ZONE_BOTTOM)
-  ctx.lineTo(CANVAS_WIDTH, CANVAS_HEIGHT - INSTAGRAM_SAFE_ZONE_BOTTOM)
-  ctx.stroke()
-  
-  ctx.restore()
-  
-  // Add labels
-  ctx.save()
-  ctx.fillStyle = 'rgba(255, 0, 0, 0.8)'
-  ctx.font = '12px Inter'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.setLineDash([])
-  
-  // Top label
-  ctx.fillText('⚠️ Safe Zone Top', CANVAS_WIDTH / 2, INSTAGRAM_SAFE_ZONE_TOP / 2)
-  
-  // Bottom label
-  ctx.fillText('⚠️ Safe Zone Bottom', CANVAS_WIDTH / 2, CANVAS_HEIGHT - INSTAGRAM_SAFE_ZONE_BOTTOM / 2)
-  
-  ctx.restore()
-}
 
