@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import {
   Box,
@@ -38,9 +38,15 @@ export const ClubOverviewPage = () => {
   const loadTemplates = useClubStore((store) => store.loadTemplates)
   const navigate = useNavigate()
 
+  const hasLoadedRef = useRef(false)
+
   useEffect(() => {
-    loadClubs()
-    loadTemplates()
+    // Load only once on mount
+    if (!hasLoadedRef.current) {
+      hasLoadedRef.current = true
+      loadClubs()
+      loadTemplates()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

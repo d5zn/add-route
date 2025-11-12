@@ -156,22 +156,26 @@ export const useClubStore = create<ClubStore>()(
           const clubsToUse = clubs.length > 0 ? clubs : mockClubs
           
           set((draft) => {
-            draft.clubs = clubsToUse
-            draft.summaries = clubsToUse.map((club: Club) => {
-              const templatesCount = draft.templates.filter(
-                (template: Template) => template.clubId === club.id,
-              ).length
-              return {
-                id: club.id,
-                name: club.name,
-                slug: club.slug,
-                theme: club.theme,
-                status: club.status,
-                templatesCount,
+            // Only update if clubs actually changed
+            const clubsChanged = JSON.stringify(draft.clubs) !== JSON.stringify(clubsToUse)
+            if (clubsChanged) {
+              draft.clubs = clubsToUse
+              draft.summaries = clubsToUse.map((club: Club) => {
+                const templatesCount = draft.templates.filter(
+                  (template: Template) => template.clubId === club.id,
+                ).length
+                return {
+                  id: club.id,
+                  name: club.name,
+                  slug: club.slug,
+                  theme: club.theme,
+                  status: club.status,
+                  templatesCount,
+                }
+              })
+              if (!draft.selectedClubId && clubsToUse.length > 0) {
+                draft.selectedClubId = clubsToUse[0].id
               }
-            })
-            if (!draft.selectedClubId && clubsToUse.length > 0) {
-              draft.selectedClubId = clubsToUse[0].id
             }
             draft.isLoading = false
           }, false, 'loadClubs:success')
@@ -206,31 +210,57 @@ export const useClubStore = create<ClubStore>()(
           const templates = await api.getTemplates(clubId)
           
           set((draft) => {
+            let templatesChanged = false
+            
             if (clubId) {
               // Replace templates for specific club only if API returned templates
               if (templates.length > 0) {
-                // Remove old templates for this club
-                draft.templates = draft.templates.filter(
-                  (template: Template) => template.clubId !== clubId,
+                // Check if templates actually changed
+                const existingTemplates = draft.templates.filter(
+                  (template: Template) => template.clubId === clubId,
                 )
-                // Add new templates from API
-                draft.templates.push(...templates)
+                const existingIds = new Set(existingTemplates.map((t) => t.id))
+                const newIds = new Set(templates.map((t) => t.id))
+                templatesChanged = 
+                  existingIds.size !== newIds.size ||
+                  ![...existingIds].every((id) => newIds.has(id)) ||
+                  ![...newIds].every((id) => existingIds.has(id))
+                
+                if (templatesChanged) {
+                  // Remove old templates for this club
+                  draft.templates = draft.templates.filter(
+                    (template: Template) => template.clubId !== clubId,
+                  )
+                  // Add new templates from API
+                  draft.templates.push(...templates)
+                }
               }
               // If API returned empty array, keep existing templates
             } else {
               // Replace all templates only if API returned templates
               if (templates.length > 0) {
-                draft.templates = templates
+                const existingIds = new Set(draft.templates.map((t) => t.id))
+                const newIds = new Set(templates.map((t) => t.id))
+                templatesChanged = 
+                  existingIds.size !== newIds.size ||
+                  ![...existingIds].every((id) => newIds.has(id)) ||
+                  ![...newIds].every((id) => existingIds.has(id))
+                
+                if (templatesChanged) {
+                  draft.templates = templates
+                }
               }
               // If API returned empty array, keep existing templates
             }
             
-            // Update summaries with correct counts
-            draft.summaries.forEach((summary) => {
-              summary.templatesCount = draft.templates.filter(
-                (template: Template) => template.clubId === summary.id,
-              ).length
-            })
+            // Only update summaries if templates changed
+            if (templatesChanged) {
+              draft.summaries.forEach((summary) => {
+                summary.templatesCount = draft.templates.filter(
+                  (template: Template) => template.clubId === summary.id,
+                ).length
+              })
+            }
             
             draft.isLoading = false
           }, false, 'loadTemplates:success')
