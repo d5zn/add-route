@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import {
   Box,
   Button,
@@ -24,20 +24,22 @@ export const ClubDetailPage = () => {
   const createTemplate = useClubStore((store) => store.createTemplate)
   const loadTemplates = useClubStore((store) => store.loadTemplates)
   const templates = useClubTemplates(clubId)
+  const hasLoadedTemplatesRef = useRef<string | null>(null)
+  const hasSelectedClubRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (clubId) {
-      loadTemplates(clubId)
+    if (clubId && hasLoadedTemplatesRef.current !== clubId) {
+      hasLoadedTemplatesRef.current = clubId
+      loadTemplates(clubId).catch(console.error)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clubId])
+  }, [clubId, loadTemplates])
 
   useEffect(() => {
-    if (clubId && clubId !== selectedClubId) {
+    if (clubId && clubId !== selectedClubId && hasSelectedClubRef.current !== clubId) {
+      hasSelectedClubRef.current = clubId
       selectClub(clubId)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clubId, selectedClubId])
+  }, [clubId, selectedClubId, selectClub])
 
   if (!club) {
     return (
