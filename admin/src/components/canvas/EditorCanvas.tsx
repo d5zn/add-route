@@ -122,8 +122,6 @@ export const EditorCanvas = () => {
 
   // Make stage larger to allow panning without clipping
   const stagePadding = 200
-  const canvasWidth = page.size.width * ui.zoom + CANVAS_PADDING * 2 + stagePadding * 2
-  const canvasHeight = page.size.height * ui.zoom + CANVAS_PADDING * 2 + stagePadding * 2
 
   const handleElementRef = (id: string, node: Konva.Node | null) => {
     if (node) {
@@ -349,6 +347,7 @@ export const EditorCanvas = () => {
           position: 'absolute',
           top: 0,
           left: 0,
+          background: 'transparent',
         }}
         onMouseDown={(event) => {
           const stage = event.target.getStage()
@@ -365,7 +364,6 @@ export const EditorCanvas = () => {
             ui.pan = { x: stage.x(), y: stage.y() }
           })
         }}
-        style={{ background: 'transparent' }}
       >
         <Layer scale={{ x: ui.zoom, y: ui.zoom }} x={CANVAS_PADDING} y={CANVAS_PADDING} listening>
           <Rect
