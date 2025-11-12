@@ -820,12 +820,7 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_admin_logout()
             return
         
-        # Admin SPA under /route/admin
-        if self.path == '/route/admin' or self.path.startswith('/route/admin/'):
-            if self.serve_admin_app():
-                return
-
-        # Admin API endpoints
+        # Admin API endpoints (check BEFORE SPA to avoid conflicts)
         if self.path == '/api/admin/users':
             self.handle_admin_users()
             return
@@ -838,10 +833,20 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_admin_templates()
             return
         
+        if self.path == '/route/admin/api/import-templates':
+            self.handle_admin_import_templates()
+            return
+        
         if self.path.startswith('/route/admin/api/templates/'):
             template_id = self.path.split('/route/admin/api/templates/')[1]
-            self.handle_admin_template(template_id)
-            return
+            if template_id and template_id != 'import-templates':  # Avoid conflict
+                self.handle_admin_template(template_id)
+                return
+        
+        # Admin SPA under /route/admin (after API endpoints)
+        if self.path == '/route/admin' or self.path.startswith('/route/admin/'):
+            if self.serve_admin_app():
+                return
         
         # Support page endpoint
         if self.path == '/support':
@@ -1041,7 +1046,7 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         # Admin template save endpoint
         if self.path.startswith('/route/admin/api/templates/'):
             template_id = self.path.split('/route/admin/api/templates/')[1]
-            if template_id:
+            if template_id and template_id != 'import-templates':  # Avoid conflict
                 self.handle_admin_save_template(template_id)
                 return
         
