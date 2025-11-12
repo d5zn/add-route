@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { Box } from '@mui/material'
 import { Stage, Layer, Rect, Text, Transformer } from 'react-konva'
 import Konva from 'konva'
-import { useEditorStore, useEditorActions } from '../../store/useEditorStore'
+import { useEditorStore } from '../../store/useEditorStore'
 import { createDefaultTextElement } from '../../utils/elements'
 import type { TextElement } from '../../types'
 
@@ -13,7 +13,9 @@ export const EditorCanvas = () => {
   const pageId = useEditorStore((store) => store.state.pageId)
   const ui = useEditorStore((store) => store.state.ui)
   const selectedElementIds = useEditorStore((store) => store.state.selectedElementIds)
-  const { addElement, selectElements, moveElement } = useEditorActions()
+  const addElement = useEditorStore((store) => store.addElement)
+  const selectElements = useEditorStore((store) => store.selectElements)
+  const moveElement = useEditorStore((store) => store.moveElement)
 
   const page = useMemo(() => {
     if (!template.pages.length) {
@@ -34,7 +36,8 @@ export const EditorCanvas = () => {
         }),
       )
     }
-  }, [addElement, layer, page])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layer, page])
 
   const stageRef = useRef<Konva.Stage | null>(null)
   const transformerRef = useRef<Konva.Transformer | null>(null)
