@@ -11,14 +11,15 @@ import {
 } from '@mui/material'
 import FormatSizeRoundedIcon from '@mui/icons-material/FormatSizeRounded'
 import ControlPointRoundedIcon from '@mui/icons-material/ControlPointRounded'
-import { useEditorStore, useEditorActions } from '../../store/useEditorStore'
+import { useEditorStore } from '../../store/useEditorStore'
 import { createDefaultTextElement } from '../../utils/elements'
 
 export const ElementListPanel = () => {
   const template = useEditorStore((store) => store.state.template)
   const pageId = useEditorStore((store) => store.state.pageId)
   const selectedElementIds = useEditorStore((store) => store.state.selectedElementIds)
-  const { addElement, selectElements } = useEditorActions()
+  const addElement = useEditorStore((store) => store.addElement)
+  const selectElements = useEditorStore((store) => store.selectElements)
 
   const page = template.pages.find((candidate) => candidate.id === pageId) ?? template.pages[0]
   const layers = page?.layers ?? []

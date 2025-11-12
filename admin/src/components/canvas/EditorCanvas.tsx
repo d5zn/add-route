@@ -25,19 +25,31 @@ export const EditorCanvas = () => {
   }, [template.pages, pageId])
 
   const layer = page?.layers[0]
+  const layerId = layer?.id
+  const elementsCount = layer?.elements.length ?? 0
+  const hasInitializedRef = useRef(false)
 
   useEffect(() => {
-    if (layer && layer.elements.length === 0 && page) {
+    // Инициализируем только один раз для каждого layer
+    if (layer && layerId && elementsCount === 0 && page && !hasInitializedRef.current) {
+      hasInitializedRef.current = true
       addElement(
-        layer.id,
+        layerId,
         createDefaultTextElement({
           position: { x: page.size.width / 2 - 150, y: page.size.height / 2 - 40 },
           content: 'Добавьте ваш текст',
         }),
       )
     }
+    
+    // Сбрасываем флаг при смене layer
+    return () => {
+      if (hasInitializedRef.current && layerId) {
+        hasInitializedRef.current = false
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layer, page])
+  }, [layerId, elementsCount])
 
   const stageRef = useRef<Konva.Stage | null>(null)
   const transformerRef = useRef<Konva.Transformer | null>(null)

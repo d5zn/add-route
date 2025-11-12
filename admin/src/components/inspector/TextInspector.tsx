@@ -10,7 +10,7 @@ import {
   Typography,
 } from '@mui/material'
 import { HexAlphaColorPicker } from 'react-colorful'
-import { useEditorStore, useEditorActions } from '../../store/useEditorStore'
+import { useEditorStore } from '../../store/useEditorStore'
 import type { TextElement } from '../../types'
 
 const FONT_WEIGHTS = [300, 400, 500, 600, 700, 800, 900] as const
@@ -22,7 +22,7 @@ export const TextInspector = () => {
   const template = useEditorStore((store) => store.state.template)
   const pageId = useEditorStore((store) => store.state.pageId)
   const selectedElementIds = useEditorStore((store) => store.state.selectedElementIds)
-  const { updateElement } = useEditorActions()
+  const updateElement = useEditorStore((store) => store.updateElement)
 
   const selectedId = selectedElementIds[0]
 
