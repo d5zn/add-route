@@ -31,9 +31,10 @@ export const EditorCanvas = () => {
     return template.pages.find((candidate) => candidate.id === pageId) ?? template.pages[0]
   }, [template.pages, pageId])
 
-  const layer = page?.layers[0]
-  const layerId = layer?.id
-  const elementsCount = layer?.elements.length ?? 0
+  // Get the main layer (first non-overlay layer) for initialization
+  const mainLayer = page?.layers.find((l) => l.name !== 'Overlay') ?? page?.layers[0]
+  const layerId = mainLayer?.id
+  const elementsCount = mainLayer?.elements.length ?? 0
   const hasInitializedRef = useRef(false)
 
   // Calculate fit-to-screen zoom on page change
@@ -82,7 +83,7 @@ export const EditorCanvas = () => {
   
   useEffect(() => {
     // Инициализируем только один раз для каждого layer
-    if (layer && layerId && elementsCount === 0 && page && !hasInitializedRef.current) {
+    if (mainLayer && layerId && elementsCount === 0 && page && !hasInitializedRef.current) {
       hasInitializedRef.current = true
       addElement(
         layerId,
@@ -118,7 +119,7 @@ export const EditorCanvas = () => {
     transformer.getLayer()?.batchDraw()
   }, [selectedElementIds])
 
-  if (!page || !layer) {
+  if (!page) {
     return <Box flex={1} display="flex" alignItems="center" justifyContent="center">Нет страницы</Box>
   }
 
@@ -162,6 +163,10 @@ export const EditorCanvas = () => {
     const text = element.content || ''
     const hasNewlines = text.includes('\n')
     
+    // For multiline text, ensure width and height are set
+    const textWidth = hasNewlines ? element.box.width : undefined
+    const textHeight = hasNewlines ? element.box.height : undefined
+    
     return (
       <Text
         key={element.id}
@@ -169,8 +174,8 @@ export const EditorCanvas = () => {
         text={text}
         x={element.position.x}
         y={element.position.y}
-        width={hasNewlines ? element.box.width : undefined}
-        height={hasNewlines ? element.box.height : undefined}
+        width={textWidth}
+        height={textHeight}
         draggable
         fontFamily={element.style.fontFamily}
         fontSize={element.style.fontSize}
@@ -187,6 +192,7 @@ export const EditorCanvas = () => {
         rotation={element.rotation}
         wrap="word"
         ellipsis={false}
+        listening
         onDragStart={() => {
           selectElements([element.id])
         }}
@@ -196,7 +202,6 @@ export const EditorCanvas = () => {
         }}
         onClick={() => selectElements([element.id])}
         onTap={() => selectElements([element.id])}
-        listening
       />
     )
   }
@@ -221,6 +226,38 @@ export const EditorCanvas = () => {
           rotation={element.rotation}
           scaleX={element.scale.x}
           scaleY={element.scale.y}
+          onDragStart={() => {
+            selectElements([element.id])
+          }}
+          onDragEnd={(evt) => {
+            const node = evt.target
+            moveElement(element.id, { x: node.x(), y: node.y() })
+          }}
+          onClick={() => selectElements([element.id])}
+          onTap={() => selectElements([element.id])}
+          listening
+        />
+      )
+    }
+    
+    if (element.shape === 'rectangle') {
+      // Rectangle shape for overlay
+      return (
+        <Rect
+          key={element.id}
+          ref={(node) => handleElementRef(element.id, node)}
+          x={element.position.x}
+          y={element.position.y}
+          width={element.box.width}
+          height={element.box.height}
+          fill={element.fill?.color ?? '#000000'}
+          stroke={element.stroke?.color}
+          strokeWidth={element.stroke?.width ?? 0}
+          opacity={element.opacity}
+          rotation={element.rotation}
+          scaleX={element.scale.x}
+          scaleY={element.scale.y}
+          draggable
           onDragStart={() => {
             selectElements([element.id])
           }}
@@ -360,6 +397,7 @@ export const EditorCanvas = () => {
           })
         }}
       >
+        {/* Background layer */}
         <Layer scale={{ x: ui.zoom, y: ui.zoom }} x={CANVAS_PADDING} y={CANVAS_PADDING} listening>
           <Rect
             x={0}
@@ -380,9 +418,23 @@ export const EditorCanvas = () => {
             shadowOpacity={0.8}
             cornerRadius={24}
           />
+        </Layer>
 
-          {layer.elements.map((element) => renderElement(element))}
+        {/* Render all layers */}
+        {page.layers.map((pageLayer) => (
+          <Layer
+            key={pageLayer.id}
+            scale={{ x: ui.zoom, y: ui.zoom }}
+            x={CANVAS_PADDING}
+            y={CANVAS_PADDING}
+            listening
+          >
+            {pageLayer.elements.map((element) => renderElement(element))}
+          </Layer>
+        ))}
 
+        {/* Transformer layer */}
+        <Layer scale={{ x: ui.zoom, y: ui.zoom }} x={CANVAS_PADDING} y={CANVAS_PADDING} listening>
           <Transformer
             ref={(node) => {
               transformerRef.current = node

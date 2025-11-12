@@ -251,13 +251,25 @@ def create_template_structure(template_data, club_id):
                 'angle': 135
             }
         }
+    elif config.get('backgroundMode') == 'image':
+        # Background image - will be set by user upload
+        background = {'color': '#000000'}  # Fallback to black
     elif config.get('backgroundMode') == 'solid':
         background = {'color': '#000000'}
     
     # Create elements for the template
     elements = []
     
-    # 1. Pink route line (path element)
+    # Determine route line color based on club
+    route_line_color = '#FF1493'  # Default pink
+    if club_id == 'not-in-paris':
+        # Not In Paris uses pink line
+        route_line_color = '#FF1493'
+    elif club_id == 'hedonism':
+        # HEDONISM might use different color - adjust if needed
+        route_line_color = '#FF1493'
+    
+    # 1. Route line (path element)
     route_line_id = generate_id()
     route_line = {
         'id': route_line_id,
@@ -288,7 +300,7 @@ def create_template_structure(template_data, club_id):
             {'x': 50, 'y': 1200}
         ],
         'stroke': {
-            'color': '#FF1493',  # Pink
+            'color': route_line_color,
             'width': 8
         },
         'fill': None
@@ -325,7 +337,26 @@ def create_template_structure(template_data, club_id):
     }
     elements.append(title_element)
     
-    # 3. Stats text elements (Distance, Elevation, Time)
+    # 3. Logo element (club logo)
+    logo_id = generate_id()
+    logo_element = {
+        'id': logo_id,
+        'name': 'Club Logo',
+        'kind': 'image',
+        'visible': True,
+        'locked': False,
+        'position': {'x': 100, 'y': 100},
+        'rotation': 0,
+        'scale': {'x': 1, 'y': 1},
+        'opacity': 1,
+        'zIndex': 4,
+        'box': {'width': 200, 'height': 200},
+        'assetId': f'{club_id}-logo.png'  # Will be uploaded by user
+    }
+    elements.append(logo_element)
+    
+    # 4. Stats text elements (Distance, Elevation, Time, Speed)
+    # Top row stats (Distance, Elevation, Time)
     stats_y = 1700
     stats = [
         {'label': 'DISTANCE', 'value': '0.00 km', 'x': 100},
@@ -346,7 +377,7 @@ def create_template_structure(template_data, club_id):
             'scale': {'x': 1, 'y': 1},
             'opacity': 1,
             'zIndex': 3,
-            'box': {'width': 200, 'height': 60},
+            'box': {'width': 200, 'height': 80},  # Increased height for multiline
             'content': f"{stat['label']}\n{stat['value']}",
             'style': {
                 'fontFamily': 'Inter',
@@ -363,12 +394,69 @@ def create_template_structure(template_data, club_id):
         }
         elements.append(stat_element)
     
+    # 5. Speed element (bottom center)
+    speed_id = generate_id()
+    speed_element = {
+        'id': speed_id,
+        'name': 'SPEED',
+        'kind': 'text',
+        'visible': True,
+        'locked': False,
+        'position': {'x': 400, 'y': 1800},  # Bottom center
+        'rotation': 0,
+        'scale': {'x': 1, 'y': 1},
+        'opacity': 1,
+        'zIndex': 3,
+        'box': {'width': 280, 'height': 80},  # Increased height for multiline
+        'content': 'AVG SPEED\n15.2 km/h',
+        'style': {
+            'fontFamily': 'Inter',
+            'fontWeight': 400,
+            'fontStyle': 'normal',
+            'fontSize': 24,
+            'lineHeight': 32,
+            'letterSpacing': 0,
+            'fill': '#FFFFFF',
+            'textAlign': 'center',
+            'textTransform': 'uppercase'
+        },
+        'autoResize': 'none'
+    }
+    elements.append(speed_element)
+    
+    # Create overlay layer for darkening effect
+    overlay_layer_id = generate_id()
+    overlay_element_id = generate_id()
+    overlay_element = {
+        'id': overlay_element_id,
+        'name': 'Overlay',
+        'kind': 'shape',
+        'visible': True,
+        'locked': False,
+        'position': {'x': 0, 'y': 0},
+        'rotation': 0,
+        'scale': {'x': 1, 'y': 1},
+        'opacity': 0.3,  # Semi-transparent overlay
+        'zIndex': 1,
+        'box': {'width': 1080, 'height': 1920},
+        'shape': 'rectangle',
+        'fill': {'color': '#000000'},
+        'stroke': None
+    }
+    
     page = {
         'id': page_id,
         'name': 'Основная',
         'size': {'width': 1080, 'height': 1920},
         'background': background,
         'layers': [
+            {
+                'id': overlay_layer_id,
+                'name': 'Overlay',
+                'elements': [overlay_element],
+                'visible': True,
+                'locked': False
+            },
             {
                 'id': layer_id,
                 'name': 'Layer 1',
