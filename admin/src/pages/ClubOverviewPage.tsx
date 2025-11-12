@@ -18,6 +18,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useClubStore } from '../store/useClubStore'
+import { useShallow } from 'zustand/react/shallow'
 import type { ClubTheme } from '../types/index.ts'
 
 const DEFAULT_THEME: ClubTheme = {
@@ -31,7 +32,9 @@ const DEFAULT_THEME: ClubTheme = {
 const fonts = ['Inter', 'Roboto', 'Montserrat', 'Playfair Display', 'Unbounded']
 
 export const ClubOverviewPage = () => {
-  const summaries = useClubStore((store) => store.summaries)
+  const summaries = useClubStore(
+    useShallow((store) => store.summaries)
+  )
   const selectClub = useClubStore((store) => store.selectClub)
   const createClub = useClubStore((store) => store.createClub)
   const loadClubs = useClubStore((store) => store.loadClubs)
@@ -44,8 +47,8 @@ export const ClubOverviewPage = () => {
     // Load only once on mount
     if (!hasLoadedRef.current) {
       hasLoadedRef.current = true
-      loadClubs()
-      loadTemplates()
+      loadClubs().catch(console.error)
+      loadTemplates().catch(console.error)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

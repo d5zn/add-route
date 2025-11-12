@@ -157,10 +157,25 @@ export const useClubStore = create<ClubStore>()(
           
           set((draft) => {
             // Only update if clubs actually changed
-            const clubsChanged = JSON.stringify(draft.clubs) !== JSON.stringify(clubsToUse)
+            const existingClubIds = new Set(draft.clubs.map((c) => c.id))
+            const newClubIds = new Set(clubsToUse.map((c) => c.id))
+            const clubsChanged = 
+              existingClubIds.size !== newClubIds.size ||
+              ![...existingClubIds].every((id) => newClubIds.has(id)) ||
+              ![...newClubIds].every((id) => existingClubIds.has(id)) ||
+              draft.clubs.some((existing, idx) => {
+                const updated = clubsToUse[idx]
+                return !updated || 
+                  existing.name !== updated.name ||
+                  existing.slug !== updated.slug ||
+                  JSON.stringify(existing.theme) !== JSON.stringify(updated.theme) ||
+                  existing.status !== updated.status
+              })
+            
             if (clubsChanged) {
               draft.clubs = clubsToUse
-              draft.summaries = clubsToUse.map((club: Club) => {
+              // Create new summaries array only if clubs changed
+              const newSummaries = clubsToUse.map((club: Club) => {
                 const templatesCount = draft.templates.filter(
                   (template: Template) => template.clubId === club.id,
                 ).length
@@ -173,6 +188,19 @@ export const useClubStore = create<ClubStore>()(
                   templatesCount,
                 }
               })
+              // Only update if summaries actually changed
+              const summariesChanged = 
+                draft.summaries.length !== newSummaries.length ||
+                draft.summaries.some((existing, idx) => {
+                  const updated = newSummaries[idx]
+                  return !updated ||
+                    existing.id !== updated.id ||
+                    existing.name !== updated.name ||
+                    existing.templatesCount !== updated.templatesCount
+                })
+              if (summariesChanged) {
+                draft.summaries = newSummaries
+              }
               if (!draft.selectedClubId && clubsToUse.length > 0) {
                 draft.selectedClubId = clubsToUse[0].id
               }
@@ -255,10 +283,15 @@ export const useClubStore = create<ClubStore>()(
             
             // Only update summaries if templates changed
             if (templatesChanged) {
+              // Update summaries with new counts
               draft.summaries.forEach((summary) => {
-                summary.templatesCount = draft.templates.filter(
+                const newCount = draft.templates.filter(
                   (template: Template) => template.clubId === summary.id,
                 ).length
+                // Only update if count actually changed
+                if (summary.templatesCount !== newCount) {
+                  summary.templatesCount = newCount
+                }
               })
             }
             
@@ -290,11 +323,14 @@ export const useClubStore = create<ClubStore>()(
               // Otherwise, keep existing templates
             }
             
-            // Update summaries with correct counts
+            // Update summaries with correct counts (only if changed)
             draft.summaries.forEach((summary) => {
-              summary.templatesCount = draft.templates.filter(
+              const newCount = draft.templates.filter(
                 (template: Template) => template.clubId === summary.id,
               ).length
+              if (summary.templatesCount !== newCount) {
+                summary.templatesCount = newCount
+              }
             })
             draft.isLoading = false
           }, false, 'loadTemplates:error')
