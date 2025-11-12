@@ -260,17 +260,34 @@ def create_template_structure(template_data, club_id):
     # Create elements for the template
     elements = []
     
-    # Determine route line color based on club
-    route_line_color = '#FF1493'  # Default pink
-    if club_id == 'not-in-paris':
-        # Not In Paris uses pink line
-        route_line_color = '#FF1493'
-    elif club_id == 'hedonism':
-        # HEDONISM might use different color - adjust if needed
-        route_line_color = '#FF1493'
+    # Determine route line style based on club
+    # Not In Paris uses gradient (blue-white-red), HEDONISM uses solid pink
+    route_line_needs_gradient = club_id == 'not-in-paris'
     
     # 1. Route line (path element)
     route_line_id = generate_id()
+    # For Not In Paris, use gradient; for HEDONISM, use solid pink
+    if route_line_needs_gradient:
+        # French gradient (blue-white-red) for Not In Paris
+        route_line_stroke = {
+            'gradient': {
+                'type': 'linear',
+                'stops': [
+                    {'offset': 0, 'color': '#2A3587'},  # Blue
+                    {'offset': 0.495192, 'color': '#FFFFFF'},  # White
+                    {'offset': 1, 'color': '#CF2228'}  # Red
+                ],
+                'angle': 90  # Vertical gradient
+            },
+            'width': 8
+        }
+    else:
+        # Solid pink for HEDONISM
+        route_line_stroke = {
+            'color': '#FF6CC9',
+            'width': 8
+        }
+    
     route_line = {
         'id': route_line_id,
         'name': 'Route Line',
@@ -299,10 +316,7 @@ def create_template_structure(template_data, club_id):
             {'x': 100, 'y': 1100},
             {'x': 50, 'y': 1200}
         ],
-        'stroke': {
-            'color': route_line_color,
-            'width': 8
-        },
+        'stroke': route_line_stroke,
         'fill': None
     }
     elements.append(route_line)
@@ -337,8 +351,47 @@ def create_template_structure(template_data, club_id):
     }
     elements.append(title_element)
     
+    # 2.5. Date text element
+    date_id = generate_id()
+    date_element = {
+        'id': date_id,
+        'name': 'Date',
+        'kind': 'text',
+        'visible': True,
+        'locked': False,
+        'position': {'x': 540, 'y': 180},
+        'rotation': 0,
+        'scale': {'x': 1, 'y': 1},
+        'opacity': 1,
+        'zIndex': 3,
+        'box': {'width': 800, 'height': 40},
+        'content': 'January 15, 2024',
+        'style': {
+            'fontFamily': 'Inter',
+            'fontWeight': 400,
+            'fontStyle': 'normal',
+            'fontSize': 20,
+            'lineHeight': 28,
+            'letterSpacing': 0,
+            'fill': '#FFFFFF',
+            'textAlign': 'left',
+            'textTransform': 'none'
+        },
+        'autoResize': 'width'
+    }
+    elements.append(date_element)
+    
     # 3. Logo element (club logo)
     logo_id = generate_id()
+    # Try different logo asset IDs
+    logo_asset_ids = [
+        f'{club_id}-logo.png',
+        f'{club_id}-logo.svg',
+        f'logo-{club_id}.png',
+        f'logo-{club_id}.svg',
+        'logo.png',
+        'logo.svg',
+    ]
     logo_element = {
         'id': logo_id,
         'name': 'Club Logo',
@@ -351,7 +404,7 @@ def create_template_structure(template_data, club_id):
         'opacity': 1,
         'zIndex': 4,
         'box': {'width': 200, 'height': 200},
-        'assetId': f'{club_id}-logo.png'  # Will be uploaded by user
+        'assetId': logo_asset_ids[0]  # Primary asset ID
     }
     elements.append(logo_element)
     

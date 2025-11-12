@@ -11,7 +11,8 @@ type EditorStore = {
   setTemplate(template: Template): void
   selectPage(pageId: string): void
   selectElements(elementIds: string[]): void
-  updateElement(elementId: string, updater: (element: EditorElement) => void): void
+  updateElement(elementId: string, updater: EditorElement | ((element: EditorElement) => void)): void
+  updatePage(pageId: string, page: import('../types').Page): void
   addElement(layerId: string, element: EditorElement): void
   moveElement(elementId: string, position: Point): void
   duplicateSelection(): void
@@ -73,8 +74,19 @@ export const useEditorStore = create<EditorStore>()(
         set((draft) => {
           const result = findElement(draft.state.template, elementId)
           if (!result) return
-          updater(result.element)
+          if (typeof updater === 'function') {
+            updater(result.element)
+          } else {
+            Object.assign(result.element, updater)
+          }
         }, false, 'updateElement'),
+      updatePage: (pageId, page) =>
+        set((draft) => {
+          const pageIndex = draft.state.template.pages.findIndex((p) => p.id === pageId)
+          if (pageIndex !== -1) {
+            draft.state.template.pages[pageIndex] = page
+          }
+        }, false, 'updatePage'),
       addElement: (layerId, element) =>
         set((draft) => {
           draft.state.template.pages.forEach((page) => {

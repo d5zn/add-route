@@ -433,8 +433,30 @@ function renderShapeElement(ctx: CanvasRenderingContext2D, element: ShapeElement
     }
 
     if (element.stroke) {
-      ctx.strokeStyle = element.stroke.color
-      ctx.lineWidth = element.stroke.width
+      // Check if stroke has gradient
+      if (element.stroke.gradient) {
+        const gradient = element.stroke.gradient
+        // Calculate gradient bounds from points
+        const minY = Math.min(...element.points.map(p => element.position.y + p.y))
+        const maxY = Math.max(...element.points.map(p => element.position.y + p.y))
+        const centerX = element.position.x + element.box.width / 2
+        
+        // Create linear gradient (vertical by default)
+        const canvasGradient = ctx.createLinearGradient(
+          centerX, minY,
+          centerX, maxY
+        )
+        
+        gradient.stops.forEach((stop: { offset: number; color: string }) => {
+          canvasGradient.addColorStop(stop.offset, stop.color)
+        })
+        
+        ctx.strokeStyle = canvasGradient
+      } else {
+        ctx.strokeStyle = element.stroke.color || '#000000'
+      }
+      
+      ctx.lineWidth = element.stroke.width || 1
       ctx.lineCap = element.stroke.cap || 'round'
       ctx.lineJoin = element.stroke.join || 'round'
       ctx.stroke()
@@ -498,7 +520,10 @@ function renderImageElement(ctx: CanvasRenderingContext2D, element: ImageElement
     const imagePaths = [
       `/assets/${assetId}`,
       `/route/assets/${assetId}`,
+      `/route/${assetId}`,
       `/${assetId}`,
+      `https://stg.addicted.design/assets/${assetId}`,
+      `https://stg.addicted.design/route/assets/${assetId}`,
     ]
 
     // Try to get cached image
@@ -506,14 +531,16 @@ function renderImageElement(ctx: CanvasRenderingContext2D, element: ImageElement
     for (const path of imagePaths) {
       if (imageCache.has(path)) {
         image = imageCache.get(path)!
-        break
+        if (image.complete) {
+          break
+        }
       }
     }
 
     if (image && image.complete) {
       ctx.drawImage(image, position.x, position.y, box.width, box.height)
     } else {
-      // Load image asynchronously
+      // Load image asynchronously from all paths
       imagePaths.forEach((path) => {
         loadImage(path).catch(() => {
           // Ignore errors, will show placeholder

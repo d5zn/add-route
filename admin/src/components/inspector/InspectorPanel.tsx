@@ -1,6 +1,8 @@
-import { Box, Stack, Typography } from '@mui/material'
+import { Box, Divider, Stack, Typography } from '@mui/material'
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded'
 import { TextInspector } from './TextInspector'
+import { BackgroundInspector } from './BackgroundInspector'
+import { OverlayInspector } from './OverlayInspector'
 
 export const InspectorPanel = () => (
   <Box
@@ -22,6 +24,10 @@ export const InspectorPanel = () => (
       </Stack>
     </Box>
     <Box flex={1} overflow="auto">
+      <BackgroundInspector />
+      <Divider />
+      <OverlayInspector />
+      <Divider />
       <TextInspector />
     </Box>
   </Box>

@@ -41,7 +41,12 @@ export type TextStyle = {
 }
 
 export type StrokeStyle = {
-  color: string
+  color?: string
+  gradient?: {
+    type: 'linear' | 'radial' | 'conic'
+    stops: Array<{ offset: number; color: string }>
+    angle?: number
+  }
   width: number
   dash?: number[]
   texture?: string
