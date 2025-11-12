@@ -282,26 +282,21 @@ export const EditorCanvas = () => {
   // Image loading hook
   const useImage = (src: string | undefined) => {
     const [image, setImage] = useState<HTMLImageElement | null>(null)
-    const [error, setError] = useState(false)
     
     useEffect(() => {
       if (!src) {
         setImage(null)
-        setError(false)
         return
       }
       
-      setError(false)
       const img = new window.Image()
       img.crossOrigin = 'anonymous'
       img.src = src
       img.onload = () => {
         setImage(img)
-        setError(false)
       }
       img.onerror = () => {
         console.warn('Failed to load image:', src)
-        setError(true)
         // Fallback to placeholder
         const placeholder = new window.Image()
         placeholder.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkxvZ288L3RleHQ+PC9zdmc+'
