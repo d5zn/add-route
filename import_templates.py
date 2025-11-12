@@ -40,14 +40,22 @@ def get_db_connection():
         database_url = database_url.replace('postgresql://', 'postgres://', 1)
     
     # Проверяем наличие внутреннего URL для Railway (быстрее)
+    # Используем только если мы действительно внутри Railway сети
     railway_internal_url = os.environ.get('DATABASE_PRIVATE_URL')
-    if railway_internal_url:
-        # Используем внутренний URL если доступен
+    is_railway = os.environ.get('RAILWAY_ENVIRONMENT') is not None
+    
+    # Если мы внутри Railway (RAILWAY_ENVIRONMENT установлен), используем внутренний URL
+    # Иначе используем DATABASE_URL (который может быть публичным или внутренним)
+    if railway_internal_url and is_railway:
         railway_internal_url = railway_internal_url.strip()
         if railway_internal_url.startswith('postgresql://'):
             railway_internal_url = railway_internal_url.replace('postgresql://', 'postgres://', 1)
         database_url = railway_internal_url
-        print("🔗 Using Railway internal database URL")
+        print("🔗 Using Railway internal database URL (inside Railway network)")
+    elif is_railway:
+        print("⚠️ Running inside Railway but DATABASE_PRIVATE_URL not available, using DATABASE_URL")
+    else:
+        print("ℹ️ Running locally, using DATABASE_URL (may need public URL)")
     
     max_retries = int(os.environ.get('DATABASE_CONNECT_RETRIES', '3'))
     base_delay = float(os.environ.get('DATABASE_CONNECT_DELAY', '1.5'))
