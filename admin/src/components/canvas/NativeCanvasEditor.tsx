@@ -26,7 +26,17 @@ export const NativeCanvasEditor = () => {
 
   // Calculate fit-to-screen scale
   useEffect(() => {
-    if (!containerRef.current || !page) return
+    if (!containerRef.current) return
+    
+    // If no page, still set up container
+    if (!page) {
+      const container = containerRef.current
+      const width = container.clientWidth
+      const height = container.clientHeight
+      setScale(1)
+      setPan({ x: (width - CANVAS_WIDTH) / 2, y: (height - CANVAS_HEIGHT) / 2 })
+      return
+    }
 
     const container = containerRef.current
     const updateSize = () => {
@@ -58,10 +68,16 @@ export const NativeCanvasEditor = () => {
   // Render canvas
   const render = useCallback(() => {
     const canvas = canvasRef.current
-    if (!canvas || !page) return
+    if (!canvas) {
+      console.warn('Canvas ref is null')
+      return
+    }
 
     const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    if (!ctx) {
+      console.warn('Could not get 2d context')
+      return
+    }
 
     // Set canvas size
     canvas.width = CANVAS_WIDTH
@@ -70,14 +86,26 @@ export const NativeCanvasEditor = () => {
     // Clear canvas
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
 
+    if (!page) {
+      // Render placeholder if no page
+      ctx.fillStyle = '#1a1a1a'
+      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+      ctx.fillStyle = '#666666'
+      ctx.font = '32px Inter'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('Нет страницы', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2)
+      return
+    }
+
     // Render background
     renderBackground(ctx, page)
 
     // Render overlay layer first (if exists)
-    const overlayLayer = page.layers.find((l) => l.name === 'Overlay')
+    const overlayLayer = page.layers?.find((l) => l.name === 'Overlay')
     if (overlayLayer && overlayLayer.visible) {
       overlayLayer.elements
-        .filter((element) => element.visible)
+        ?.filter((element) => element.visible)
         .forEach((element) => {
           renderElement(ctx, element, false)
         })
@@ -85,10 +113,10 @@ export const NativeCanvasEditor = () => {
 
     // Render all other layers
     page.layers
-      .filter((layer) => layer.visible && layer.name !== 'Overlay')
+      ?.filter((layer) => layer.visible && layer.name !== 'Overlay')
       .forEach((layer) => {
         layer.elements
-          .filter((element) => element.visible)
+          ?.filter((element) => element.visible)
           .forEach((element) => {
             renderElement(ctx, element, selectedElementIds.includes(element.id))
           })
@@ -99,8 +127,16 @@ export const NativeCanvasEditor = () => {
     render()
   }, [render])
 
+  // Force initial render after mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      render()
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [])
+
   // Re-render when elements change
-  const elements = page.layers.flatMap((layer) => layer.elements)
+  const elements = page?.layers?.flatMap((layer) => layer.elements || []) || []
   useEffect(() => {
     render()
   }, [elements, render])
@@ -253,13 +289,7 @@ export const NativeCanvasEditor = () => {
     [scale],
   )
 
-  if (!page) {
-    return (
-      <Box flex={1} display="flex" alignItems="center" justifyContent="center">
-        Нет страницы
-      </Box>
-    )
-  }
+  // Always render canvas, even if no page
 
   const displayWidth = CANVAS_WIDTH * scale
   const displayHeight = CANVAS_HEIGHT * scale
@@ -291,6 +321,7 @@ export const NativeCanvasEditor = () => {
           height: displayHeight,
           cursor: isDragging ? 'grabbing' : 'grab',
           display: 'block',
+          backgroundColor: '#1a1a1a',
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
