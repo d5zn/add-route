@@ -226,7 +226,7 @@ def generate_id():
     return ''.join(random.choice(chars) for _ in range(12))
 
 def create_template_structure(template_data, club_id):
-    """Convert simple template data to full admin template structure"""
+    """Convert simple template data to full admin template structure with elements"""
     template_id = template_data['id']
     name = template_data['name']
     description = template_data.get('description', '')
@@ -237,20 +237,131 @@ def create_template_structure(template_data, club_id):
     layer_id = generate_id()
     
     # Determine background based on config
-    background = {'color': '#ffffff'}
+    background = {'color': '#000000'}  # Default to black for route templates
     if config.get('backgroundMode') == 'gradient':
+        # French gradient (blue, white, red)
         background = {
             'gradient': {
                 'type': 'linear',
                 'stops': [
-                    {'offset': 0, 'color': '#FF6B6B'},
-                    {'offset': 1, 'color': '#4ECDC4'}
+                    {'offset': 0, 'color': '#0055A4'},  # Blue
+                    {'offset': 0.5, 'color': '#FFFFFF'},  # White
+                    {'offset': 1, 'color': '#EF4135'}  # Red
                 ],
                 'angle': 135
             }
         }
     elif config.get('backgroundMode') == 'solid':
         background = {'color': '#000000'}
+    
+    # Create elements for the template
+    elements = []
+    
+    # 1. Pink route line (path element)
+    route_line_id = generate_id()
+    route_line = {
+        'id': route_line_id,
+        'name': 'Route Line',
+        'kind': 'shape',
+        'visible': True,
+        'locked': False,
+        'position': {'x': 540, 'y': 400},  # Center-ish
+        'rotation': 0,
+        'scale': {'x': 1, 'y': 1},
+        'opacity': 1,
+        'zIndex': 2,
+        'box': {'width': 800, 'height': 1200},
+        'shape': 'custom',
+        'points': [
+            {'x': 0, 'y': 0},
+            {'x': 50, 'y': 100},
+            {'x': 150, 'y': 200},
+            {'x': 300, 'y': 300},
+            {'x': 500, 'y': 400},
+            {'x': 700, 'y': 500},
+            {'x': 800, 'y': 600},
+            {'x': 750, 'y': 700},
+            {'x': 600, 'y': 800},
+            {'x': 400, 'y': 900},
+            {'x': 200, 'y': 1000},
+            {'x': 100, 'y': 1100},
+            {'x': 50, 'y': 1200}
+        ],
+        'stroke': {
+            'color': '#FF1493',  # Pink
+            'width': 8
+        },
+        'fill': None
+    }
+    elements.append(route_line)
+    
+    # 2. Title text element
+    title_id = generate_id()
+    title_element = {
+        'id': title_id,
+        'name': 'Title',
+        'kind': 'text',
+        'visible': True,
+        'locked': False,
+        'position': {'x': 540, 'y': 100},
+        'rotation': 0,
+        'scale': {'x': 1, 'y': 1},
+        'opacity': 1,
+        'zIndex': 3,
+        'box': {'width': 800, 'height': 80},
+        'content': 'Route Title',
+        'style': {
+            'fontFamily': 'Inter',
+            'fontWeight': 600,
+            'fontStyle': 'normal',
+            'fontSize': 48,
+            'lineHeight': 56,
+            'letterSpacing': 0,
+            'fill': '#FFFFFF',
+            'textAlign': 'left',
+            'textTransform': 'none'
+        },
+        'autoResize': 'width'
+    }
+    elements.append(title_element)
+    
+    # 3. Stats text elements (Distance, Elevation, Time)
+    stats_y = 1700
+    stats = [
+        {'label': 'DISTANCE', 'value': '0.00 km', 'x': 100},
+        {'label': 'ELEVATION', 'value': '0 m', 'x': 400},
+        {'label': 'TIME', 'value': '0h 0m', 'x': 700}
+    ]
+    
+    for stat in stats:
+        stat_id = generate_id()
+        stat_element = {
+            'id': stat_id,
+            'name': stat['label'],
+            'kind': 'text',
+            'visible': True,
+            'locked': False,
+            'position': {'x': stat['x'], 'y': stats_y},
+            'rotation': 0,
+            'scale': {'x': 1, 'y': 1},
+            'opacity': 1,
+            'zIndex': 3,
+            'box': {'width': 200, 'height': 60},
+            'content': f"{stat['label']}\n{stat['value']}",
+            'style': {
+                'fontFamily': 'Inter',
+                'fontWeight': 400,
+                'fontStyle': 'normal',
+                'fontSize': 24,
+                'lineHeight': 32,
+                'letterSpacing': 0,
+                'fill': '#FFFFFF',
+                'textAlign': 'left',
+                'textTransform': 'uppercase'
+            },
+            'autoResize': 'none'
+        }
+        elements.append(stat_element)
     
     page = {
         'id': page_id,
@@ -261,7 +372,7 @@ def create_template_structure(template_data, club_id):
             {
                 'id': layer_id,
                 'name': 'Layer 1',
-                'elements': [],
+                'elements': elements,
                 'visible': True,
                 'locked': False
             }
@@ -361,11 +472,13 @@ def import_clubs_and_templates():
                 ))
                 print(f"✓ Created club: {club_data['name']}")
         
-        # Import templates
+        # Import templates - only the first one (classic) for each club
         for club_slug, templates_data in clubs_data.items():
             club_id = clubs_definitions[club_slug]['id']
             
-            for template_data in templates_data:
+            # Import only the first template (classic/default)
+            if templates_data:
+                template_data = templates_data[0]  # Only first template
                 template_id = template_data['id']
                 
                 # Check if template exists
@@ -373,28 +486,42 @@ def import_clubs_and_templates():
                 existing = cursor.fetchone()
                 
                 if existing:
-                    print(f"  ⚠ Template '{template_data['name']}' already exists, skipping...")
-                    continue
-                
-                # Create full template structure
-                full_template = create_template_structure(template_data, club_id)
-                
-                # Insert template
-                cursor.execute("""
-                    INSERT INTO templates (id, club_id, name, description, tags, pages, 
-                                          version, status, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                """, (
-                    full_template['id'],
-                    full_template['clubId'],
-                    full_template['name'],
-                    full_template['description'],
-                    json.dumps(full_template['tags']),
-                    json.dumps(full_template['pages']),
-                    full_template['version'],
-                    full_template['status']
-                ))
-                print(f"  ✓ Created template: {full_template['name']}")
+                    # Update existing template instead of skipping
+                    print(f"  ⚠ Template '{template_data['name']}' already exists, updating...")
+                    full_template = create_template_structure(template_data, club_id)
+                    cursor.execute("""
+                        UPDATE templates 
+                        SET name = %s, description = %s, tags = %s, pages = %s, 
+                            version = version + 1, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                    """, (
+                        full_template['name'],
+                        full_template['description'],
+                        json.dumps(full_template['tags']),
+                        json.dumps(full_template['pages']),
+                        template_id
+                    ))
+                    print(f"  ✓ Updated template: {full_template['name']}")
+                else:
+                    # Create full template structure
+                    full_template = create_template_structure(template_data, club_id)
+                    
+                    # Insert template
+                    cursor.execute("""
+                        INSERT INTO templates (id, club_id, name, description, tags, pages, 
+                                              version, status, created_at, updated_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                    """, (
+                        full_template['id'],
+                        full_template['clubId'],
+                        full_template['name'],
+                        full_template['description'],
+                        json.dumps(full_template['tags']),
+                        json.dumps(full_template['pages']),
+                        full_template['version'],
+                        full_template['status']
+                    ))
+                    print(f"  ✓ Created template: {full_template['name']}")
         
         conn.commit()
         print("\n✅ Import completed successfully!")
