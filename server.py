@@ -1537,6 +1537,7 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                         ORDER BY created_at DESC
                     """)
                     clubs = cursor.fetchall()
+                    print(f"📊 Found {len(clubs)} clubs in database")
                     
                     # Convert theme JSON string to object and format for frontend
                     formatted_clubs = []
@@ -1618,6 +1619,7 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                         """)
                     
                     templates = cursor.fetchall()
+                    print(f"📊 Found {len(templates)} templates in database (clubId: {club_id or 'all'})")
                     
                     # Convert and format templates for frontend
                     formatted_templates = []
