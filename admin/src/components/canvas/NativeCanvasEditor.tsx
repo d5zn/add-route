@@ -31,11 +31,24 @@ export const NativeCanvasEditor = () => {
     const container = containerRef.current
     
     const updateSize = () => {
-      // Force layout recalculation
-      const width = container.clientWidth || container.offsetWidth || window.innerWidth
-      const height = container.clientHeight || container.offsetHeight || window.innerHeight
+      // Force layout recalculation by reading offsetHeight
+      const rect = container.getBoundingClientRect()
+      const width = rect.width || container.offsetWidth || container.clientWidth || window.innerWidth
+      const height = rect.height || container.offsetHeight || container.clientHeight || window.innerHeight
 
       if (width === 0 || height === 0) {
+        // If still no size, try to get from parent
+        const parent = container.parentElement
+        if (parent) {
+          const parentRect = parent.getBoundingClientRect()
+          const parentHeight = parentRect.height || parent.offsetHeight || parent.clientHeight
+          if (parentHeight > 0 && height === 0) {
+            // Force container height from parent
+            container.style.height = `${parentHeight}px`
+            setTimeout(updateSize, 50)
+            return
+          }
+        }
         // Retry after a short delay if container has no size
         setTimeout(updateSize, 100)
         return
@@ -314,7 +327,7 @@ export const NativeCanvasEditor = () => {
     <Box
       ref={containerRef}
       sx={{
-        flex: 1,
+        flex: '1 1 0%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -322,8 +335,8 @@ export const NativeCanvasEditor = () => {
         overflow: 'hidden',
         position: 'relative',
         width: '100%',
-        height: '100%',
         minHeight: 0,
+        alignSelf: 'stretch',
       }}
       onWheel={handleWheel}
     >

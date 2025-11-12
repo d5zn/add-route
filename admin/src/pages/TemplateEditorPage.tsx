@@ -118,10 +118,22 @@ export const TemplateEditorPage = () => {
       sx={{
         height: '100%',
         overflow: 'hidden',
+        position: 'relative',
+        alignSelf: 'stretch',
       }}
     >
       <ElementListPanel />
-      <NativeCanvasEditor />
+      <Box
+        sx={{
+          flex: '1 1 0%',
+          minWidth: 0,
+          minHeight: 0,
+          display: 'flex',
+          position: 'relative',
+        }}
+      >
+        <NativeCanvasEditor />
+      </Box>
       <InspectorPanel />
     </Box>
   )
