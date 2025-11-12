@@ -3,6 +3,7 @@ import TuneRoundedIcon from '@mui/icons-material/TuneRounded'
 import { TextInspector } from './TextInspector'
 import { BackgroundInspector } from './BackgroundInspector'
 import { OverlayInspector } from './OverlayInspector'
+import { ImageInspector } from './ImageInspector'
 
 export const InspectorPanel = () => (
   <Box
@@ -27,6 +28,8 @@ export const InspectorPanel = () => (
       <BackgroundInspector />
       <Divider />
       <OverlayInspector />
+      <Divider />
+      <ImageInspector />
       <Divider />
       <TextInspector />
     </Box>

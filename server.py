@@ -17,6 +17,7 @@ from datetime import datetime
 from collections import defaultdict
 from urllib.parse import urlparse, parse_qs
 from http.cookies import SimpleCookie
+from io import BytesIO
 
 ADMIN_DIST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'admin', 'dist')
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
@@ -1132,6 +1133,11 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_admin_logout()
             return
         
+        # Admin asset upload endpoint
+        if self.path == '/route/admin/api/upload-asset':
+            self.handle_admin_upload_asset()
+            return
+        
         # Admin template save endpoint
         if self.path.startswith('/route/admin/api/templates/'):
             template_id = self.path.split('/route/admin/api/templates/')[1]
@@ -2015,6 +2021,118 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps({'error': 'Invalid JSON'}).encode())
         except Exception as e:
             print(f"❌ Error in admin save template endpoint: {e}")
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Internal server error'}).encode())
+    
+    def handle_admin_upload_asset(self):
+        """Handle asset upload endpoint"""
+        if not self.is_admin_authenticated():
+            self.send_response(401)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Unauthorized'}).encode())
+            return
+        
+        try:
+            import cgi
+            import uuid
+            from pathlib import Path
+            
+            # Get content type and boundary
+            content_type = self.headers.get('Content-Type', '')
+            if not content_type.startswith('multipart/form-data'):
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'Invalid content type. Expected multipart/form-data'}).encode())
+                return
+            
+            # Parse boundary
+            boundary = content_type.split('boundary=')[1].encode() if 'boundary=' in content_type else None
+            if not boundary:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'Missing boundary in Content-Type'}).encode())
+                return
+            
+            # Read request body
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            
+            # Parse multipart form data
+            form = cgi.FieldStorage(
+                fp=BytesIO(post_data),
+                environ={'REQUEST_METHOD': 'POST', 'CONTENT_TYPE': content_type},
+                keep_blank_values=True
+            )
+            
+            # Get file from form
+            if 'file' not in form:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'No file provided'}).encode())
+                return
+            
+            file_item = form['file']
+            if not file_item.filename:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'No filename provided'}).encode())
+                return
+            
+            # Validate file type
+            filename = file_item.filename
+            allowed_extensions = ['.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp']
+            file_ext = Path(filename).suffix.lower()
+            if file_ext not in allowed_extensions:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': f'Invalid file type. Allowed: {", ".join(allowed_extensions)}'}).encode())
+                return
+            
+            # Read file data
+            file_data = file_item.file.read()
+            
+            # Validate file size (max 10MB)
+            if len(file_data) > 10 * 1024 * 1024:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'File size exceeds 10MB limit'}).encode())
+                return
+            
+            # Generate unique filename
+            unique_id = str(uuid.uuid4())[:8]
+            safe_filename = ''.join(c for c in filename if c.isalnum() or c in '._-')
+            asset_filename = f"{unique_id}_{safe_filename}"
+            
+            # Ensure assets directory exists
+            assets_dir = Path('assets')
+            assets_dir.mkdir(exist_ok=True)
+            
+            # Save file
+            asset_path = assets_dir / asset_filename
+            with open(asset_path, 'wb') as f:
+                f.write(file_data)
+            
+            print(f"✅ Asset uploaded: {asset_filename} ({len(file_data)} bytes)")
+            
+            # Return asset ID (filename)
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'assetId': asset_filename, 'filename': asset_filename}).encode())
+            
+        except Exception as e:
+            print(f"❌ Error in admin upload asset endpoint: {e}")
+            import traceback
+            traceback.print_exc()
             self.send_response(500)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
