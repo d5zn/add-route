@@ -815,9 +815,22 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             if self.serve_admin_app():
                 return
 
-        # Admin API endpoint
+        # Admin API endpoints
         if self.path == '/api/admin/users':
             self.handle_admin_users()
+            return
+        
+        if self.path == '/route/admin/api/clubs':
+            self.handle_admin_clubs()
+            return
+        
+        if self.path == '/route/admin/api/templates':
+            self.handle_admin_templates()
+            return
+        
+        if self.path.startswith('/route/admin/api/templates/'):
+            template_id = self.path.split('/route/admin/api/templates/')[1]
+            self.handle_admin_template(template_id)
             return
         
         # Support page endpoint
@@ -1486,6 +1499,179 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             
         except Exception as e:
             print(f"❌ Error in admin users endpoint: {e}")
+            self.send_error(500, 'Internal server error')
+    
+    def handle_admin_clubs(self):
+        """Handle admin clubs API endpoint"""
+        if not self.is_admin_authenticated():
+            self.send_error(401, 'Unauthorized')
+            return
+        
+        try:
+            conn = get_db_connection()
+            if conn:
+                try:
+                    cursor = conn.cursor(cursor_factory=RealDictCursor)
+                    cursor.execute("""
+                        SELECT id, name, slug, description, logo_asset_id, theme, 
+                               created_at, updated_at, status
+                        FROM clubs 
+                        WHERE status != 'deleted'
+                        ORDER BY created_at DESC
+                    """)
+                    clubs = cursor.fetchall()
+                    
+                    # Convert theme JSON string to object
+                    for club in clubs:
+                        if club.get('theme') and isinstance(club['theme'], str):
+                            try:
+                                club['theme'] = json.loads(club['theme'])
+                            except:
+                                club['theme'] = {}
+                    
+                    conn.close()
+                    
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'clubs': clubs}, default=str).encode())
+                    return
+                except Exception as e:
+                    print(f"⚠️ Error querying clubs from database: {e}")
+                    if conn:
+                        conn.close()
+            
+            # Fallback: return empty array or mock data
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'clubs': []}).encode())
+            
+        except Exception as e:
+            print(f"❌ Error in admin clubs endpoint: {e}")
+            self.send_error(500, 'Internal server error')
+    
+    def handle_admin_templates(self):
+        """Handle admin templates API endpoint"""
+        if not self.is_admin_authenticated():
+            self.send_error(401, 'Unauthorized')
+            return
+        
+        try:
+            club_id = None
+            query_params = parse_qs(urlparse(self.path).query)
+            if 'clubId' in query_params:
+                club_id = query_params['clubId'][0]
+            
+            conn = get_db_connection()
+            if conn:
+                try:
+                    cursor = conn.cursor(cursor_factory=RealDictCursor)
+                    if club_id:
+                        cursor.execute("""
+                            SELECT id, club_id, name, description, tags, 
+                                   created_at, updated_at, version, status, pages
+                            FROM templates 
+                            WHERE club_id = %s AND status != 'deleted'
+                            ORDER BY updated_at DESC
+                        """, (club_id,))
+                    else:
+                        cursor.execute("""
+                            SELECT id, club_id, name, description, tags, 
+                                   created_at, updated_at, version, status, pages
+                            FROM templates 
+                            WHERE status != 'deleted'
+                            ORDER BY updated_at DESC
+                        """)
+                    
+                    templates = cursor.fetchall()
+                    
+                    # Convert pages JSON string to object
+                    for template in templates:
+                        if template.get('pages') and isinstance(template['pages'], str):
+                            try:
+                                template['pages'] = json.loads(template['pages'])
+                            except:
+                                template['pages'] = []
+                        if template.get('tags') and isinstance(template['tags'], str):
+                            try:
+                                template['tags'] = json.loads(template['tags'])
+                            except:
+                                template['tags'] = []
+                    
+                    conn.close()
+                    
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'templates': templates}, default=str).encode())
+                    return
+                except Exception as e:
+                    print(f"⚠️ Error querying templates from database: {e}")
+                    if conn:
+                        conn.close()
+            
+            # Fallback: return empty array
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'templates': []}).encode())
+            
+        except Exception as e:
+            print(f"❌ Error in admin templates endpoint: {e}")
+            self.send_error(500, 'Internal server error')
+    
+    def handle_admin_template(self, template_id):
+        """Handle single template API endpoint"""
+        if not self.is_admin_authenticated():
+            self.send_error(401, 'Unauthorized')
+            return
+        
+        try:
+            conn = get_db_connection()
+            if conn:
+                try:
+                    cursor = conn.cursor(cursor_factory=RealDictCursor)
+                    cursor.execute("""
+                        SELECT id, club_id, name, description, tags, 
+                               created_at, updated_at, version, status, pages
+                        FROM templates 
+                        WHERE id = %s AND status != 'deleted'
+                    """, (template_id,))
+                    
+                    template = cursor.fetchone()
+                    
+                    if template:
+                        # Convert pages JSON string to object
+                        if template.get('pages') and isinstance(template['pages'], str):
+                            try:
+                                template['pages'] = json.loads(template['pages'])
+                            except:
+                                template['pages'] = []
+                        if template.get('tags') and isinstance(template['tags'], str):
+                            try:
+                                template['tags'] = json.loads(template['tags'])
+                            except:
+                                template['tags'] = []
+                        
+                        conn.close()
+                        
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'application/json')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({'template': template}, default=str).encode())
+                        return
+                    
+                    conn.close()
+                except Exception as e:
+                    print(f"⚠️ Error querying template from database: {e}")
+                    if conn:
+                        conn.close()
+            
+            self.send_error(404, 'Template not found')
+            
+        except Exception as e:
+            print(f"❌ Error in admin template endpoint: {e}")
             self.send_error(500, 'Internal server error')
     
     def hash_token(self, token):

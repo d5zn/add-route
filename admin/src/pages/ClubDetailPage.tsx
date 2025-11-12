@@ -22,7 +22,15 @@ export const ClubDetailPage = () => {
   const selectClub = useClubStore((store) => store.selectClub)
   const selectedClubId = useClubStore((store) => store.selectedClubId)
   const createTemplate = useClubStore((store) => store.createTemplate)
+  const loadTemplates = useClubStore((store) => store.loadTemplates)
   const templates = useClubTemplates(clubId)
+
+  useEffect(() => {
+    if (clubId) {
+      loadTemplates(clubId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clubId])
 
   useEffect(() => {
     if (clubId && clubId !== selectedClubId) {

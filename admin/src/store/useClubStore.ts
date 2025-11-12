@@ -6,6 +6,7 @@ import { nanoid } from 'nanoid'
 import type { Club, ClubSummary, Template } from '../types/index.ts'
 import { mockClubs, mockTemplates } from '../data/mockClubs.ts'
 import { createTemplateDraft } from '../utils/templateFactory.ts'
+import { api } from '../services/api.ts'
 
 export type ClubStoreState = {
   clubs: Club[]
@@ -29,6 +30,8 @@ type ClubStoreActions = {
   upsertTemplate(template: Template): void
   duplicateTemplate(templateId: string): Template | null
   archiveTemplate(templateId: string): void
+  loadClubs(): Promise<void>
+  loadTemplates(clubId?: string): Promise<void>
 }
 
 type ClubStore = ClubStoreState & ClubStoreActions
@@ -140,6 +143,105 @@ export const useClubStore = create<ClubStore>()(
           template.status = 'archived'
           template.updatedAt = new Date().toISOString()
         }, false, 'archiveTemplate')
+      },
+      loadClubs: async () => {
+        set((draft) => {
+          draft.isLoading = true
+        }, false, 'loadClubs:start')
+        
+        try {
+          const clubs = await api.getClubs()
+          
+          // Use mock data as fallback if API returns empty array
+          const clubsToUse = clubs.length > 0 ? clubs : mockClubs
+          
+          set((draft) => {
+            draft.clubs = clubsToUse
+            draft.summaries = clubsToUse.map((club: Club) => {
+              const templatesCount = draft.templates.filter(
+                (template: Template) => template.clubId === club.id,
+              ).length
+              return {
+                id: club.id,
+                name: club.name,
+                slug: club.slug,
+                theme: club.theme,
+                status: club.status,
+                templatesCount,
+              }
+            })
+            if (!draft.selectedClubId && clubsToUse.length > 0) {
+              draft.selectedClubId = clubsToUse[0].id
+            }
+            draft.isLoading = false
+          }, false, 'loadClubs:success')
+        } catch (error) {
+          console.error('Failed to load clubs, using mock data:', error)
+          // Fallback to mock data on error
+          set((draft) => {
+            draft.clubs = mockClubs
+            draft.summaries = mockClubs.map((club: Club) => ({
+              id: club.id,
+              name: club.name,
+              slug: club.slug,
+              theme: club.theme,
+              status: club.status,
+              templatesCount: draft.templates.filter(
+                (template: Template) => template.clubId === club.id,
+              ).length,
+            }))
+            if (!draft.selectedClubId && mockClubs.length > 0) {
+              draft.selectedClubId = mockClubs[0].id
+            }
+            draft.isLoading = false
+          }, false, 'loadClubs:error')
+        }
+      },
+      loadTemplates: async (clubId?: string) => {
+        set((draft) => {
+          draft.isLoading = true
+        }, false, 'loadTemplates:start')
+        
+        try {
+          const templates = await api.getTemplates(clubId)
+          
+          // Use mock data as fallback if API returns empty array and no clubId specified
+          const templatesToUse = templates.length > 0 || clubId ? templates : mockTemplates
+          
+          set((draft) => {
+            if (clubId) {
+              // Replace templates for specific club
+              draft.templates = draft.templates.filter(
+                (template: Template) => template.clubId !== clubId,
+              )
+              draft.templates.push(...templatesToUse)
+            } else {
+              // Replace all templates
+              draft.templates = templatesToUse
+            }
+            
+            // Update summaries with correct counts
+            draft.summaries.forEach((summary) => {
+              summary.templatesCount = draft.templates.filter(
+                (template: Template) => template.clubId === summary.id,
+              ).length
+            })
+            
+            draft.isLoading = false
+          }, false, 'loadTemplates:success')
+        } catch (error) {
+          console.error('Failed to load templates, using existing data:', error)
+          // On error, keep existing templates and just update counts
+          set((draft) => {
+            // Update summaries with correct counts from existing templates
+            draft.summaries.forEach((summary) => {
+              summary.templatesCount = draft.templates.filter(
+                (template: Template) => template.clubId === summary.id,
+              ).length
+            })
+            draft.isLoading = false
+          }, false, 'loadTemplates:error')
+        }
       },
     })),
   ),

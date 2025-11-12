@@ -3,6 +3,7 @@ import { Box, CircularProgress, Stack, Typography } from '@mui/material'
 import { useParams } from 'react-router-dom'
 import { useClubStore } from '../store/useClubStore'
 import { useEditorStore, useTemplate as useEditorTemplate } from '../store/useEditorStore'
+import { api } from '../services/api.ts'
 import { ElementListPanel } from '../components/sidebar/ElementListPanel'
 import { EditorCanvas } from '../components/canvas/EditorCanvas'
 import { InspectorPanel } from '../components/inspector/InspectorPanel'
@@ -16,8 +17,10 @@ export const TemplateEditorPage = () => {
   )
   const editorTemplate = useEditorTemplate()
   const setTemplate = useEditorStore((store) => store.setTemplate)
+  const upsertTemplate = useClubStore((store) => store.upsertTemplate)
   const lastTemplateIdRef = useRef<string | null>(null)
   const isSettingRef = useRef(false)
+  const hasLoadedFromApiRef = useRef(false)
 
   useEffect(() => {
     if (clubId && clubId !== selectedClubId) {
@@ -26,11 +29,29 @@ export const TemplateEditorPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clubId, selectedClubId])
 
+  // Загружаем шаблон из API при первой загрузке
+  useEffect(() => {
+    if (!templateId || hasLoadedFromApiRef.current) return
+    
+    hasLoadedFromApiRef.current = true
+    api.getTemplate(templateId)
+      .then((apiTemplate) => {
+        // Обновляем шаблон в store, если он был загружен из API
+        upsertTemplate(apiTemplate)
+      })
+      .catch((error) => {
+        console.warn('Failed to load template from API, using store template:', error)
+        hasLoadedFromApiRef.current = false
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateId])
+
   useEffect(() => {
     // Используем только templateId из URL для отслеживания изменений
     if (!templateId) {
       lastTemplateIdRef.current = null
       isSettingRef.current = false
+      hasLoadedFromApiRef.current = false
       return
     }
     
@@ -76,7 +97,7 @@ export const TemplateEditorPage = () => {
       clearTimeout(timeoutId)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templateId])
+  }, [templateId, template?.id])
 
   if (!template) {
     return (

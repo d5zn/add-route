@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import {
   Box,
@@ -34,7 +34,15 @@ export const ClubOverviewPage = () => {
   const summaries = useClubStore((store) => store.summaries)
   const selectClub = useClubStore((store) => store.selectClub)
   const createClub = useClubStore((store) => store.createClub)
+  const loadClubs = useClubStore((store) => store.loadClubs)
+  const loadTemplates = useClubStore((store) => store.loadTemplates)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    loadClubs()
+    loadTemplates()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const [isDialogOpen, setDialogOpen] = useState(false)
   const [name, setName] = useState('')
