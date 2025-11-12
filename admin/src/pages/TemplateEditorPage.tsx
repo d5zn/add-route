@@ -21,13 +21,14 @@ export const TemplateEditorPage = () => {
     if (clubId && clubId !== selectedClubId) {
       selectClub(clubId)
     }
-  }, [clubId, selectClub, selectedClubId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clubId, selectedClubId])
 
   const editorTemplateId = editorTemplate?.id
 
   useEffect(() => {
-    if (!template) return
-    if (editorTemplateId && editorTemplateId === template.id) {
+    if (!template || !templateId) return
+    if (editorTemplateId && editorTemplateId === templateId) {
       return
     }
     if (import.meta.env.DEV) {
@@ -35,7 +36,8 @@ export const TemplateEditorPage = () => {
     }
     const cloned = JSON.parse(JSON.stringify(template)) as typeof template
     setTemplate(cloned)
-  }, [template, editorTemplateId, setTemplate])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateId, editorTemplateId])
 
   if (!template) {
     return (

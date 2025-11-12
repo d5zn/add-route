@@ -28,7 +28,8 @@ export const ClubDetailPage = () => {
     if (clubId && clubId !== selectedClubId) {
       selectClub(clubId)
     }
-  }, [clubId, selectClub, selectedClubId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clubId, selectedClubId])
 
   if (!club) {
     return (
