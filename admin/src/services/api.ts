@@ -21,6 +21,14 @@ async function fetchWithAuth<T>(url: string, options?: RequestInit): Promise<T> 
     throw new Error(`API error: ${response.statusText}`)
   }
 
+  // Check if response is JSON
+  const contentType = response.headers.get('content-type')
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await response.text()
+    console.error('API returned non-JSON response:', text.substring(0, 200))
+    throw new Error('API returned non-JSON response. Check server configuration.')
+  }
+
   return response.json()
 }
 

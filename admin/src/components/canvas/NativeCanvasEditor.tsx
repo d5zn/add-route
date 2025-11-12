@@ -254,7 +254,11 @@ export const NativeCanvasEditor = () => {
   )
 
   if (!page) {
-    return <Box flex={1} display="flex" alignItems="center" justifyContent="center">Нет страницы</Box>
+    return (
+      <Box flex={1} display="flex" alignItems="center" justifyContent="center">
+        Нет страницы
+      </Box>
+    )
   }
 
   const displayWidth = CANVAS_WIDTH * scale
@@ -273,6 +277,7 @@ export const NativeCanvasEditor = () => {
         position: 'relative',
         width: '100%',
         height: '100%',
+        minHeight: 0,
       }}
       onWheel={handleWheel}
     >
@@ -285,6 +290,7 @@ export const NativeCanvasEditor = () => {
           width: displayWidth,
           height: displayHeight,
           cursor: isDragging ? 'grabbing' : 'grab',
+          display: 'block',
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}

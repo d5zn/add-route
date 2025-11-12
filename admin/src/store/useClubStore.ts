@@ -230,10 +230,25 @@ export const useClubStore = create<ClubStore>()(
             draft.isLoading = false
           }, false, 'loadTemplates:success')
         } catch (error) {
-          console.error('Failed to load templates, using existing data:', error)
-          // On error, keep existing templates and just update counts
+          console.error('Failed to load templates, using mock data:', error)
+          // Use mock templates as fallback on error
+          const templatesToUse = clubId 
+            ? mockTemplates.filter((t: Template) => t.clubId === clubId)
+            : mockTemplates
+          
           set((draft) => {
-            // Update summaries with correct counts from existing templates
+            if (clubId) {
+              // Replace templates for specific club with mock data
+              draft.templates = draft.templates.filter(
+                (template: Template) => template.clubId !== clubId,
+              )
+              draft.templates.push(...templatesToUse)
+            } else {
+              // Replace all templates with mock data
+              draft.templates = templatesToUse
+            }
+            
+            // Update summaries with correct counts
             draft.summaries.forEach((summary) => {
               summary.templatesCount = draft.templates.filter(
                 (template: Template) => template.clubId === summary.id,
