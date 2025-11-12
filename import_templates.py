@@ -476,37 +476,53 @@ def import_clubs_and_templates():
         for club_slug, templates_data in clubs_data.items():
             club_id = clubs_definitions[club_slug]['id']
             
+            # First, delete all existing templates for this club (we'll keep only one)
+            cursor.execute("""
+                SELECT id, name FROM templates 
+                WHERE club_id = %s AND status != 'deleted'
+            """, (club_id,))
+            existing_templates = cursor.fetchall()
+            
+            if existing_templates:
+                print(f"  🗑️  Found {len(existing_templates)} existing templates for {club_slug}, removing...")
+                for existing_template in existing_templates:
+                    cursor.execute("""
+                        UPDATE templates 
+                        SET status = 'deleted', updated_at = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                    """, (existing_template['id'],))
+                    print(f"    - Removed: {existing_template['name']}")
+            
             # Import only the first template (classic/default)
             if templates_data:
                 template_data = templates_data[0]  # Only first template
                 template_id = template_data['id']
                 
-                # Check if template exists
-                cursor.execute("SELECT id FROM templates WHERE id = %s", (template_id,))
-                existing = cursor.fetchone()
+                # Create full template structure
+                full_template = create_template_structure(template_data, club_id)
                 
-                if existing:
-                    # Update existing template instead of skipping
-                    print(f"  ⚠ Template '{template_data['name']}' already exists, updating...")
-                    full_template = create_template_structure(template_data, club_id)
+                # Check if this specific template exists
+                cursor.execute("SELECT id FROM templates WHERE id = %s", (template_id,))
+                template_exists = cursor.fetchone()
+                
+                if template_exists:
+                    # Update existing template
                     cursor.execute("""
                         UPDATE templates 
                         SET name = %s, description = %s, tags = %s, pages = %s, 
-                            version = version + 1, updated_at = CURRENT_TIMESTAMP
+                            version = version + 1, status = %s, updated_at = CURRENT_TIMESTAMP
                         WHERE id = %s
                     """, (
                         full_template['name'],
                         full_template['description'],
                         json.dumps(full_template['tags']),
                         json.dumps(full_template['pages']),
+                        full_template['status'],
                         template_id
                     ))
                     print(f"  ✓ Updated template: {full_template['name']}")
                 else:
-                    # Create full template structure
-                    full_template = create_template_structure(template_data, club_id)
-                    
-                    # Insert template
+                    # Insert new template
                     cursor.execute("""
                         INSERT INTO templates (id, club_id, name, description, tags, pages, 
                                               version, status, created_at, updated_at)
