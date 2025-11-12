@@ -6,15 +6,9 @@ import type { Page, EditorElement, TextElement, ShapeElement, ImageElement } fro
 const CANVAS_WIDTH = 1080
 const CANVAS_HEIGHT = 1920
 
-interface CanvasElement {
-  element: EditorElement
-  bounds: { x: number; y: number; width: number; height: number }
-}
-
 export const NativeCanvasEditor = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
   const [scale, setScale] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null)
@@ -38,7 +32,6 @@ export const NativeCanvasEditor = () => {
     const updateSize = () => {
       const width = container.clientWidth
       const height = container.clientHeight
-      setContainerSize({ width, height })
 
       // Calculate scale to fit canvas
       const scaleX = (width - 64) / CANVAS_WIDTH
