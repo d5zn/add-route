@@ -4,7 +4,7 @@ import { Stage, Layer, Rect, Text, Transformer, Line, Image as KonvaImage } from
 import Konva from 'konva'
 import { useEditorStore } from '../../store/useEditorStore'
 import { createDefaultTextElement } from '../../utils/elements'
-import type { TextElement, ShapeElement, ImageElement, EditorElement } from '../../types'
+import type { TextElement, ShapeElement, ImageElement, EditorElement, Page } from '../../types'
 
 const CANVAS_PADDING = 64
 const MIN_ZOOM = 0.1
@@ -163,8 +163,8 @@ export const EditorCanvas = () => {
     const text = element.content || ''
     const hasNewlines = text.includes('\n')
     
-    // For multiline text, ensure width and height are set
-    const textWidth = hasNewlines ? element.box.width : undefined
+    // For multiline text, always set width to ensure proper wrapping
+    const textWidth = element.box.width
     const textHeight = hasNewlines ? element.box.height : undefined
     
     return (
@@ -183,7 +183,7 @@ export const EditorCanvas = () => {
         fill={element.style.fill}
         align={element.style.textAlign}
         verticalAlign="top"
-        lineHeight={element.style.lineHeight / element.style.fontSize}
+        lineHeight={element.style.lineHeight}
         letterSpacing={element.style.letterSpacing}
         shadowColor={element.style.shadow?.color}
         shadowBlur={element.style.shadow?.blur ?? 0}
@@ -222,6 +222,9 @@ export const EditorCanvas = () => {
           draggable
           stroke={element.stroke?.color ?? '#000000'}
           strokeWidth={element.stroke?.width ?? 1}
+          lineCap="round"
+          lineJoin="round"
+          tension={0.5}
           opacity={element.opacity}
           rotation={element.rotation}
           scaleX={element.scale.x}
@@ -279,18 +282,26 @@ export const EditorCanvas = () => {
   // Image loading hook
   const useImage = (src: string | undefined) => {
     const [image, setImage] = useState<HTMLImageElement | null>(null)
+    const [error, setError] = useState(false)
     
     useEffect(() => {
       if (!src) {
         setImage(null)
+        setError(false)
         return
       }
       
+      setError(false)
       const img = new window.Image()
       img.crossOrigin = 'anonymous'
       img.src = src
-      img.onload = () => setImage(img)
+      img.onload = () => {
+        setImage(img)
+        setError(false)
+      }
       img.onerror = () => {
+        console.warn('Failed to load image:', src)
+        setError(true)
         // Fallback to placeholder
         const placeholder = new window.Image()
         placeholder.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkxvZ288L3RleHQ+PC9zdmc+'
@@ -302,9 +313,42 @@ export const EditorCanvas = () => {
   }
   
   const ImageElementRenderer = ({ element }: { element: ImageElement }) => {
-    const image = useImage(element.assetId ? `/assets/${element.assetId}` : undefined)
+    // Try multiple paths for logo
+    const assetPaths = [
+      element.assetId ? `/assets/${element.assetId}` : undefined,
+      element.assetId ? `/route/assets/${element.assetId}` : undefined,
+      element.assetId ? `/${element.assetId}` : undefined,
+    ].filter(Boolean) as string[]
     
-    if (!image) return null
+    const image = useImage(assetPaths[0])
+    
+    if (!image) {
+      // Show placeholder if image not loaded
+      return (
+        <Rect
+          ref={(node) => handleElementRef(element.id, node)}
+          x={element.position.x}
+          y={element.position.y}
+          width={element.box.width}
+          height={element.box.height}
+          fill="#333333"
+          stroke="#666666"
+          strokeWidth={1}
+          opacity={element.opacity * 0.5}
+          draggable
+          onDragStart={() => {
+            selectElements([element.id])
+          }}
+          onDragEnd={(evt) => {
+            const node = evt.target
+            moveElement(element.id, { x: node.x(), y: node.y() })
+          }}
+          onClick={() => selectElements([element.id])}
+          onTap={() => selectElements([element.id])}
+          listening
+        />
+      )
+    }
     
     return (
       <KonvaImage
@@ -330,6 +374,40 @@ export const EditorCanvas = () => {
         onTap={() => selectElements([element.id])}
         listening
       />
+    )
+  }
+  
+  // Background layer component
+  const BackgroundLayer = ({ page, zoom, padding }: { page: Page; zoom: number; padding: number }) => {
+    const bgImage = useImage(
+      page.background?.pattern?.imageId
+        ? `/assets/${page.background.pattern.imageId}`
+        : undefined
+    )
+    
+    return (
+      <Layer scale={{ x: zoom, y: zoom }} x={padding} y={padding} listening={false}>
+        <Rect
+          x={0}
+          y={0}
+          width={page.size.width}
+          height={page.size.height}
+          fill={page.background?.color ?? '#ffffff'}
+          fillPatternImage={bgImage || undefined}
+          fillPatternRepeat={page.background?.pattern?.repeat || 'no-repeat'}
+          fillLinearGradientStartPoint={page.background?.gradient ? { x: 0, y: 0 } : undefined}
+          fillLinearGradientEndPoint={page.background?.gradient ? { x: page.size.width, y: page.size.height } : undefined}
+          fillLinearGradientColorStops={
+            page.background?.gradient
+              ? page.background.gradient.stops.flatMap((stop) => [stop.offset, stop.color])
+              : undefined
+          }
+          shadowColor="rgba(15,23,42,0.16)"
+          shadowBlur={24}
+          shadowOpacity={0.8}
+          cornerRadius={24}
+        />
+      </Layer>
     )
   }
   
@@ -398,40 +476,29 @@ export const EditorCanvas = () => {
         }}
       >
         {/* Background layer */}
-        <Layer scale={{ x: ui.zoom, y: ui.zoom }} x={CANVAS_PADDING} y={CANVAS_PADDING} listening>
-          <Rect
-            x={0}
-            y={0}
-            width={page.size.width}
-            height={page.size.height}
-            fill={page.background?.color ?? '#ffffff'}
-            fillPatternImage={page.background?.pattern?.imageId ? undefined : undefined}
-            fillLinearGradientStartPoint={page.background?.gradient ? { x: 0, y: 0 } : undefined}
-            fillLinearGradientEndPoint={page.background?.gradient ? { x: page.size.width, y: page.size.height } : undefined}
-            fillLinearGradientColorStops={
-              page.background?.gradient
-                ? page.background.gradient.stops.flatMap((stop) => [stop.offset, stop.color])
-                : undefined
-            }
-            shadowColor="rgba(15,23,42,0.16)"
-            shadowBlur={24}
-            shadowOpacity={0.8}
-            cornerRadius={24}
-          />
-        </Layer>
+        <BackgroundLayer
+          page={page}
+          zoom={ui.zoom}
+          padding={CANVAS_PADDING}
+        />
 
         {/* Render all layers */}
-        {page.layers.map((pageLayer) => (
-          <Layer
-            key={pageLayer.id}
-            scale={{ x: ui.zoom, y: ui.zoom }}
-            x={CANVAS_PADDING}
-            y={CANVAS_PADDING}
-            listening
-          >
-            {pageLayer.elements.map((element) => renderElement(element))}
-          </Layer>
-        ))}
+        {page.layers
+          .filter((layer) => layer.visible)
+          .map((pageLayer) => (
+            <Layer
+              key={pageLayer.id}
+              scale={{ x: ui.zoom, y: ui.zoom }}
+              x={CANVAS_PADDING}
+              y={CANVAS_PADDING}
+              listening
+              visible={pageLayer.visible}
+            >
+              {pageLayer.elements
+                .filter((element) => element.visible)
+                .map((element) => renderElement(element))}
+            </Layer>
+          ))}
 
         {/* Transformer layer */}
         <Layer scale={{ x: ui.zoom, y: ui.zoom }} x={CANVAS_PADDING} y={CANVAS_PADDING} listening>
