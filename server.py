@@ -468,6 +468,16 @@ def init_database():
                 print("✅ Analytics schema (fallback method)")
             except Exception as e:
                 print(f"⚠️ Analytics fallback error: {e}")
+        
+        # Read admin schema from file
+        admin_schema_file = 'admin_schema.sql'
+        if os.path.exists(admin_schema_file):
+            with open(admin_schema_file, 'r', encoding='utf-8') as f:
+                admin_sql = f.read()
+                executed, errors = execute_sql_statements(cursor, admin_sql, "Admin schema")
+                print(f"✅ Admin schema: {executed} statements executed, {errors} errors")
+        else:
+            print("⚠️ admin_schema.sql not found")
             
     except Exception as e:
         print(f"❌ Database init error: {e}")
@@ -1028,6 +1038,13 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_admin_logout()
             return
         
+        # Admin template save endpoint
+        if self.path.startswith('/route/admin/api/templates/'):
+            template_id = self.path.split('/route/admin/api/templates/')[1]
+            if template_id:
+                self.handle_admin_save_template(template_id)
+                return
+        
         # OAuth token exchange (works for both root and /route/)
         if self.path == '/api/strava/token' or self.path == '/route/api/strava/token':
             self.handle_token_exchange()
@@ -1521,20 +1538,36 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     """)
                     clubs = cursor.fetchall()
                     
-                    # Convert theme JSON string to object
+                    # Convert theme JSON string to object and format for frontend
+                    formatted_clubs = []
                     for club in clubs:
-                        if club.get('theme') and isinstance(club['theme'], str):
-                            try:
-                                club['theme'] = json.loads(club['theme'])
-                            except:
-                                club['theme'] = {}
+                        formatted_club = {
+                            'id': club.get('id'),
+                            'name': club.get('name'),
+                            'slug': club.get('slug'),
+                            'description': club.get('description'),
+                            'logoAssetId': club.get('logo_asset_id'),
+                            'theme': {},
+                            'createdAt': club.get('created_at').isoformat() if club.get('created_at') else None,
+                            'updatedAt': club.get('updated_at').isoformat() if club.get('updated_at') else None,
+                            'status': club.get('status', 'active')
+                        }
+                        if club.get('theme'):
+                            if isinstance(club['theme'], str):
+                                try:
+                                    formatted_club['theme'] = json.loads(club['theme'])
+                                except:
+                                    formatted_club['theme'] = {}
+                            else:
+                                formatted_club['theme'] = club['theme']
+                        formatted_clubs.append(formatted_club)
                     
                     conn.close()
                     
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json')
                     self.end_headers()
-                    self.wfile.write(json.dumps({'clubs': clubs}, default=str).encode())
+                    self.wfile.write(json.dumps({'clubs': formatted_clubs}, default=str).encode())
                     return
                 except Exception as e:
                     print(f"⚠️ Error querying clubs from database: {e}")
@@ -1586,25 +1619,45 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     
                     templates = cursor.fetchall()
                     
-                    # Convert pages JSON string to object
+                    # Convert and format templates for frontend
+                    formatted_templates = []
                     for template in templates:
-                        if template.get('pages') and isinstance(template['pages'], str):
-                            try:
-                                template['pages'] = json.loads(template['pages'])
-                            except:
-                                template['pages'] = []
-                        if template.get('tags') and isinstance(template['tags'], str):
-                            try:
-                                template['tags'] = json.loads(template['tags'])
-                            except:
-                                template['tags'] = []
+                        formatted_template = {
+                            'id': template.get('id'),
+                            'clubId': template.get('club_id'),
+                            'name': template.get('name'),
+                            'description': template.get('description'),
+                            'tags': [],
+                            'pages': [],
+                            'createdAt': template.get('created_at').isoformat() if template.get('created_at') else None,
+                            'updatedAt': template.get('updated_at').isoformat() if template.get('updated_at') else None,
+                            'version': template.get('version', 1),
+                            'status': template.get('status', 'draft')
+                        }
+                        if template.get('pages'):
+                            if isinstance(template['pages'], str):
+                                try:
+                                    formatted_template['pages'] = json.loads(template['pages'])
+                                except:
+                                    formatted_template['pages'] = []
+                            else:
+                                formatted_template['pages'] = template['pages']
+                        if template.get('tags'):
+                            if isinstance(template['tags'], str):
+                                try:
+                                    formatted_template['tags'] = json.loads(template['tags'])
+                                except:
+                                    formatted_template['tags'] = []
+                            else:
+                                formatted_template['tags'] = template['tags']
+                        formatted_templates.append(formatted_template)
                     
                     conn.close()
                     
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json')
                     self.end_headers()
-                    self.wfile.write(json.dumps({'templates': templates}, default=str).encode())
+                    self.wfile.write(json.dumps({'templates': formatted_templates}, default=str).encode())
                     return
                 except Exception as e:
                     print(f"⚠️ Error querying templates from database: {e}")
@@ -1642,24 +1695,42 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     template = cursor.fetchone()
                     
                     if template:
-                        # Convert pages JSON string to object
-                        if template.get('pages') and isinstance(template['pages'], str):
-                            try:
-                                template['pages'] = json.loads(template['pages'])
-                            except:
-                                template['pages'] = []
-                        if template.get('tags') and isinstance(template['tags'], str):
-                            try:
-                                template['tags'] = json.loads(template['tags'])
-                            except:
-                                template['tags'] = []
+                        # Convert and format template for frontend
+                        formatted_template = {
+                            'id': template.get('id'),
+                            'clubId': template.get('club_id'),
+                            'name': template.get('name'),
+                            'description': template.get('description'),
+                            'tags': [],
+                            'pages': [],
+                            'createdAt': template.get('created_at').isoformat() if template.get('created_at') else None,
+                            'updatedAt': template.get('updated_at').isoformat() if template.get('updated_at') else None,
+                            'version': template.get('version', 1),
+                            'status': template.get('status', 'draft')
+                        }
+                        if template.get('pages'):
+                            if isinstance(template['pages'], str):
+                                try:
+                                    formatted_template['pages'] = json.loads(template['pages'])
+                                except:
+                                    formatted_template['pages'] = []
+                            else:
+                                formatted_template['pages'] = template['pages']
+                        if template.get('tags'):
+                            if isinstance(template['tags'], str):
+                                try:
+                                    formatted_template['tags'] = json.loads(template['tags'])
+                                except:
+                                    formatted_template['tags'] = []
+                            else:
+                                formatted_template['tags'] = template['tags']
                         
                         conn.close()
                         
                         self.send_response(200)
                         self.send_header('Content-Type', 'application/json')
                         self.end_headers()
-                        self.wfile.write(json.dumps({'template': template}, default=str).encode())
+                        self.wfile.write(json.dumps({'template': formatted_template}, default=str).encode())
                         return
                     
                     conn.close()
@@ -1672,6 +1743,81 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             
         except Exception as e:
             print(f"❌ Error in admin template endpoint: {e}")
+            self.send_error(500, 'Internal server error')
+    
+    def handle_admin_save_template(self, template_id):
+        """Handle template save/update API endpoint"""
+        if not self.is_admin_authenticated():
+            self.send_error(401, 'Unauthorized')
+            return
+        
+        try:
+            # Read request body
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            template_data = json.loads(post_data.decode('utf-8'))
+            
+            conn = get_db_connection()
+            if conn:
+                try:
+                    cursor = conn.cursor(cursor_factory=RealDictCursor)
+                    
+                    # Check if template exists
+                    cursor.execute("SELECT id FROM templates WHERE id = %s", (template_id,))
+                    existing = cursor.fetchone()
+                    
+                    if existing:
+                        # Update existing template
+                        cursor.execute("""
+                            UPDATE templates 
+                            SET name = %s, description = %s, tags = %s, pages = %s, 
+                                version = %s, status = %s, updated_at = CURRENT_TIMESTAMP
+                            WHERE id = %s
+                        """, (
+                            template_data.get('name'),
+                            template_data.get('description'),
+                            json.dumps(template_data.get('tags', [])),
+                            json.dumps(template_data.get('pages', [])),
+                            template_data.get('version', 1),
+                            template_data.get('status', 'draft'),
+                            template_id
+                        ))
+                    else:
+                        # Insert new template
+                        cursor.execute("""
+                            INSERT INTO templates (id, club_id, name, description, tags, pages, 
+                                                   version, status, created_at, updated_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """, (
+                            template_id,
+                            template_data.get('clubId'),
+                            template_data.get('name'),
+                            template_data.get('description'),
+                            json.dumps(template_data.get('tags', [])),
+                            json.dumps(template_data.get('pages', [])),
+                            template_data.get('version', 1),
+                            template_data.get('status', 'draft')
+                        ))
+                    
+                    conn.commit()
+                    conn.close()
+                    
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'success': True}).encode())
+                    return
+                    
+                except Exception as e:
+                    conn.rollback()
+                    print(f"⚠️ Error saving template to database: {e}")
+                    if conn:
+                        conn.close()
+            
+            self.send_error(500, 'Internal server error')
+            
+        except Exception as e:
+            print(f"❌ Error in admin save template endpoint: {e}")
             self.send_error(500, 'Internal server error')
     
     def hash_token(self, token):

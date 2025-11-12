@@ -40,5 +40,12 @@ export const api = {
     const data = await fetchWithAuth<{ template: Template }>(`${API_BASE}/templates/${templateId}`)
     return data.template
   },
+
+  async saveTemplate(template: Template): Promise<void> {
+    await fetchWithAuth(`${API_BASE}/templates/${template.id}`, {
+      method: 'POST',
+      body: JSON.stringify(template),
+    })
+  },
 }
 
