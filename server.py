@@ -910,20 +910,24 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_admin_users()
             return
         
-        if self.path == '/route/admin/api/clubs':
+        # Parse path to handle query parameters
+        parsed_path = urlparse(self.path)
+        path_without_query = parsed_path.path
+        
+        if path_without_query == '/route/admin/api/clubs':
             self.handle_admin_clubs()
             return
         
-        if self.path == '/route/admin/api/templates':
+        if path_without_query == '/route/admin/api/templates':
             self.handle_admin_templates()
             return
         
-        if self.path == '/route/admin/api/import-templates':
+        if path_without_query == '/route/admin/api/import-templates':
             self.handle_admin_import_templates()
             return
         
-        if self.path.startswith('/route/admin/api/templates/'):
-            template_id = self.path.split('/route/admin/api/templates/')[1]
+        if path_without_query.startswith('/route/admin/api/templates/'):
+            template_id = path_without_query.split('/route/admin/api/templates/')[1]
             if template_id and template_id != 'import-templates':  # Avoid conflict
                 self.handle_admin_template(template_id)
                 return
@@ -1616,7 +1620,10 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def handle_admin_clubs(self):
         """Handle admin clubs API endpoint"""
         if not self.is_admin_authenticated():
-            self.send_error(401, 'Unauthorized')
+            self.send_response(401)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Unauthorized'}).encode())
             return
         
         try:
@@ -1678,12 +1685,18 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             
         except Exception as e:
             print(f"❌ Error in admin clubs endpoint: {e}")
-            self.send_error(500, 'Internal server error')
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Internal server error'}).encode())
     
     def handle_admin_templates(self):
         """Handle admin templates API endpoint"""
         if not self.is_admin_authenticated():
-            self.send_error(401, 'Unauthorized')
+            self.send_response(401)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Unauthorized'}).encode())
             return
         
         try:
@@ -1769,12 +1782,18 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             
         except Exception as e:
             print(f"❌ Error in admin templates endpoint: {e}")
-            self.send_error(500, 'Internal server error')
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Internal server error', 'templates': []}).encode())
     
     def handle_admin_template(self, template_id):
         """Handle single template API endpoint"""
         if not self.is_admin_authenticated():
-            self.send_error(401, 'Unauthorized')
+            self.send_response(401)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Unauthorized'}).encode())
             return
         
         try:
@@ -1836,16 +1855,25 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     if conn:
                         conn.close()
             
-            self.send_error(404, 'Template not found')
+            self.send_response(404)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Template not found'}).encode())
             
         except Exception as e:
             print(f"❌ Error in admin template endpoint: {e}")
-            self.send_error(500, 'Internal server error')
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Internal server error'}).encode())
     
     def handle_admin_import_templates(self):
         """Handle template import endpoint - runs import script"""
         if not self.is_admin_authenticated():
-            self.send_error(401, 'Unauthorized')
+            self.send_response(401)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Unauthorized'}).encode())
             return
         
         try:
@@ -1899,14 +1927,24 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def handle_admin_save_template(self, template_id):
         """Handle template save/update API endpoint"""
         if not self.is_admin_authenticated():
-            self.send_error(401, 'Unauthorized')
+            self.send_response(401)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Unauthorized'}).encode())
             return
         
         try:
             # Read request body
             content_length = int(self.headers.get('Content-Length', 0))
             post_data = self.rfile.read(content_length)
-            template_data = json.loads(post_data.decode('utf-8'))
+            try:
+                template_data = json.loads(post_data.decode('utf-8'))
+            except json.JSONDecodeError:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'Invalid JSON'}).encode())
+                return
             
             conn = get_db_connection()
             if conn:
@@ -1965,11 +2003,22 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     if conn:
                         conn.close()
             
-            self.send_error(500, 'Internal server error')
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Internal server error'}).encode())
             
+        except json.JSONDecodeError:
+            self.send_response(400)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Invalid JSON'}).encode())
         except Exception as e:
             print(f"❌ Error in admin save template endpoint: {e}")
-            self.send_error(500, 'Internal server error')
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Internal server error'}).encode())
     
     def hash_token(self, token):
         """Create a hash of the token for logging purposes"""
