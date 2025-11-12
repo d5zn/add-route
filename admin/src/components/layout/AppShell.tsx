@@ -14,7 +14,7 @@ export const AppShell = () => {
       }}
     >
       <Topbar />
-      <Box component="main" sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', px: { xs: 2, md: 4 }, py: { xs: 3, md: 5 } }}>
+      <Box component="main" sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
         <Outlet />
       </Box>
     </Box>

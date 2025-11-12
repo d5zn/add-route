@@ -111,7 +111,15 @@ export const TemplateEditorPage = () => {
   }
 
   return (
-    <Box display="flex" flex={1} minHeight={0}>
+    <Box 
+      display="flex" 
+      flex={1} 
+      minHeight={0}
+      sx={{
+        height: '100%',
+        overflow: 'hidden',
+      }}
+    >
       <ElementListPanel />
       <NativeCanvasEditor />
       <InspectorPanel />

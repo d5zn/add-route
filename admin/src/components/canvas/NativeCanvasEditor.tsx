@@ -28,20 +28,25 @@ export const NativeCanvasEditor = () => {
   useEffect(() => {
     if (!containerRef.current) return
     
-    // If no page, still set up container
-    if (!page) {
-      const container = containerRef.current
-      const width = container.clientWidth
-      const height = container.clientHeight
-      setScale(1)
-      setPan({ x: (width - CANVAS_WIDTH) / 2, y: (height - CANVAS_HEIGHT) / 2 })
-      return
-    }
-
     const container = containerRef.current
+    
     const updateSize = () => {
-      const width = container.clientWidth
-      const height = container.clientHeight
+      // Force layout recalculation
+      const width = container.clientWidth || container.offsetWidth || window.innerWidth
+      const height = container.clientHeight || container.offsetHeight || window.innerHeight
+
+      if (width === 0 || height === 0) {
+        // Retry after a short delay if container has no size
+        setTimeout(updateSize, 100)
+        return
+      }
+
+      // If no page, still set up container
+      if (!page) {
+        setScale(1)
+        setPan({ x: (width - CANVAS_WIDTH) / 2, y: (height - CANVAS_HEIGHT) / 2 })
+        return
+      }
 
       // Calculate scale to fit canvas
       const scaleX = (width - 64) / CANVAS_WIDTH
@@ -58,11 +63,22 @@ export const NativeCanvasEditor = () => {
       })
     }
 
+    // Initial update
     updateSize()
-    const resizeObserver = new ResizeObserver(updateSize)
+    
+    // Use ResizeObserver for dynamic updates
+    const resizeObserver = new ResizeObserver(() => {
+      updateSize()
+    })
     resizeObserver.observe(container)
 
-    return () => resizeObserver.disconnect()
+    // Also listen to window resize as fallback
+    window.addEventListener('resize', updateSize)
+
+    return () => {
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', updateSize)
+    }
   }, [page])
 
   // Render canvas
@@ -297,11 +313,11 @@ export const NativeCanvasEditor = () => {
   return (
     <Box
       ref={containerRef}
-      flex={1}
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
       sx={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         backgroundColor: '#E5E7EB',
         overflow: 'hidden',
         position: 'relative',
