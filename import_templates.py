@@ -9,6 +9,7 @@ import os
 import sys
 import json
 import re
+import time
 from datetime import datetime
 
 # Add the current directory to the path to import server functions
@@ -17,6 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
     import psycopg2
     from psycopg2.extras import RealDictCursor
+    from psycopg2 import errors as psycopg2_errors
     POSTGRES_AVAILABLE = True
 except ImportError:
     POSTGRES_AVAILABLE = False
@@ -24,27 +26,59 @@ except ImportError:
     sys.exit(1)
 
 def get_db_connection():
-    """Get PostgreSQL connection from DATABASE_URL"""
+    """Get PostgreSQL connection from DATABASE_URL (with Railway support)"""
     database_url = os.environ.get('DATABASE_URL')
     if not database_url:
         print("❌ DATABASE_URL not set")
         return None
     
+    # Удаляем лишние пробелы/переводы строк (Railway может добавить перевод строки)
     database_url = database_url.strip()
     
-    # Railway uses postgresql://, but psycopg2 wants postgres://
+    # Railway использует postgresql://, но psycopg2 хочет postgres://
     if database_url.startswith('postgresql://'):
         database_url = database_url.replace('postgresql://', 'postgres://', 1)
     
-    try:
-        conn = psycopg2.connect(
-            database_url,
-            connect_timeout=10
-        )
-        return conn
-    except Exception as e:
-        print(f"❌ Database connection error: {e}")
-        return None
+    # Проверяем наличие внутреннего URL для Railway (быстрее)
+    railway_internal_url = os.environ.get('DATABASE_PRIVATE_URL')
+    if railway_internal_url:
+        # Используем внутренний URL если доступен
+        railway_internal_url = railway_internal_url.strip()
+        if railway_internal_url.startswith('postgresql://'):
+            railway_internal_url = railway_internal_url.replace('postgresql://', 'postgres://', 1)
+        database_url = railway_internal_url
+        print("🔗 Using Railway internal database URL")
+    
+    max_retries = int(os.environ.get('DATABASE_CONNECT_RETRIES', '3'))
+    base_delay = float(os.environ.get('DATABASE_CONNECT_DELAY', '1.5'))
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            if attempt > 1:
+                print(f"🔌 Attempting to connect to database... (attempt {attempt}/{max_retries})")
+            conn = psycopg2.connect(
+                database_url,
+                connect_timeout=10
+            )
+            if attempt > 1:
+                print(f"✅ Database connection established after {attempt} attempts")
+            else:
+                print("✅ Database connection established")
+            return conn
+        except psycopg2.OperationalError as e:
+            if attempt < max_retries:
+                delay = base_delay * (2 ** (attempt - 1))  # Exponential backoff
+                print(f"❌ Database connection error (Operational): {e}")
+                print(f"⏳ Retrying database connection in {delay:.1f}s...")
+                time.sleep(delay)
+            else:
+                print(f"❌ Database connection error: {e}")
+                print(f"⚠️ Exhausted all database connection attempts. Falling back.")
+        except Exception as e:
+            print(f"❌ Database connection error: {e}")
+            return None
+    
+    return None
 
 def parse_template_definitions(js_file_path):
     """Parse template definitions from app-addicted-logic.js"""
