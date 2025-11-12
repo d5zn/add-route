@@ -205,19 +205,24 @@ export const useClubStore = create<ClubStore>()(
         try {
           const templates = await api.getTemplates(clubId)
           
-          // Use mock data as fallback if API returns empty array and no clubId specified
-          const templatesToUse = templates.length > 0 || clubId ? templates : mockTemplates
-          
           set((draft) => {
             if (clubId) {
-              // Replace templates for specific club
-              draft.templates = draft.templates.filter(
-                (template: Template) => template.clubId !== clubId,
-              )
-              draft.templates.push(...templatesToUse)
+              // Replace templates for specific club only if API returned templates
+              if (templates.length > 0) {
+                // Remove old templates for this club
+                draft.templates = draft.templates.filter(
+                  (template: Template) => template.clubId !== clubId,
+                )
+                // Add new templates from API
+                draft.templates.push(...templates)
+              }
+              // If API returned empty array, keep existing templates
             } else {
-              // Replace all templates
-              draft.templates = templatesToUse
+              // Replace all templates only if API returned templates
+              if (templates.length > 0) {
+                draft.templates = templates
+              }
+              // If API returned empty array, keep existing templates
             }
             
             // Update summaries with correct counts
@@ -230,22 +235,29 @@ export const useClubStore = create<ClubStore>()(
             draft.isLoading = false
           }, false, 'loadTemplates:success')
         } catch (error) {
-          console.error('Failed to load templates, using mock data:', error)
-          // Use mock templates as fallback on error
-          const templatesToUse = clubId 
-            ? mockTemplates.filter((t: Template) => t.clubId === clubId)
-            : mockTemplates
+          console.error('Failed to load templates, using existing or mock data:', error)
           
           set((draft) => {
             if (clubId) {
-              // Replace templates for specific club with mock data
-              draft.templates = draft.templates.filter(
-                (template: Template) => template.clubId !== clubId,
+              // Check if we already have templates for this club
+              const existingTemplates = draft.templates.filter(
+                (template: Template) => template.clubId === clubId,
               )
-              draft.templates.push(...templatesToUse)
+              
+              // Only add mock templates if we don't have any existing ones
+              if (existingTemplates.length === 0) {
+                const mockTemplatesForClub = mockTemplates.filter((t: Template) => t.clubId === clubId)
+                if (mockTemplatesForClub.length > 0) {
+                  draft.templates.push(...mockTemplatesForClub)
+                }
+              }
+              // Otherwise, keep existing templates
             } else {
-              // Replace all templates with mock data
-              draft.templates = templatesToUse
+              // If no clubId specified and we have no templates, use mock data
+              if (draft.templates.length === 0) {
+                draft.templates = [...mockTemplates]
+              }
+              // Otherwise, keep existing templates
             }
             
             // Update summaries with correct counts
