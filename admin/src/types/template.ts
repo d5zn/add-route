@@ -211,5 +211,6 @@ export type EditorState = {
     showRulers: boolean
     zoom: number
     pan: Point
+    aspectRatio: '9:16' | '4:5'
   }
 }

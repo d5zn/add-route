@@ -1,4 +1,4 @@
-import { AppBar, Box, Button, IconButton, Stack, Toolbar, Typography } from '@mui/material'
+import { AppBar, Box, Button, IconButton, Stack, Toolbar, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded'
 import UndoRoundedIcon from '@mui/icons-material/UndoRounded'
 import RedoRoundedIcon from '@mui/icons-material/RedoRounded'
@@ -6,14 +6,24 @@ import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded'
 import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded'
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
 import { useSelectedClub } from '../../store/useClubStore'
-import { useTemplate } from '../../store/useEditorStore'
+import { useTemplate, useEditorUi, useEditorActions } from '../../store/useEditorStore'
 
 export const Topbar = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const club = useSelectedClub()
   const template = useTemplate()
+  const ui = useEditorUi()
+  const { updateUi } = useEditorActions()
   const isEditorRoute = /\/templates\//.test(location.pathname)
+
+  const handleAspectRatioChange = (_event: React.MouseEvent<HTMLElement>, newRatio: string | null) => {
+    if (newRatio) {
+      updateUi((ui) => {
+        ui.aspectRatio = newRatio as '9:16' | '4:5'
+      })
+    }
+  }
 
   return (
     <AppBar
@@ -25,24 +35,24 @@ export const Topbar = () => {
       }}
     >
       <Toolbar sx={{ justifyContent: 'space-between', gap: 4 }}>
-        <Stack direction="row" spacing={3} alignItems="center">
+        <Stack direction="row" spacing={3} alignItems="center" flex={1}>
           <Box component={RouterLink} to="/clubs" sx={{ textDecoration: 'none' }}>
             <Typography
               component="span"
               sx={{
-                fontFamily: '"SF Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                fontStyle: 'italic',
-                fontWeight: 850,
-                fontSize: 26,
-                letterSpacing: '0.24em',
+                fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                fontStyle: 'normal',
+                fontWeight: 600,
+                fontSize: 20,
+                letterSpacing: '0.02em',
                 color: '#FFFFFF',
-                textTransform: 'uppercase',
+                textTransform: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 1,
               }}
             >
-              Route Admin
+              add Route Admin
             </Typography>
           </Box>
           {isEditorRoute && (
@@ -68,6 +78,42 @@ export const Topbar = () => {
               <Typography variant="subtitle1" fontWeight={600}>
                 {template.name}
               </Typography>
+            </Box>
+          )}
+          
+          {/* Aspect Ratio Toggle - Center */}
+          {isEditorRoute && (
+            <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+              <ToggleButtonGroup
+                value={ui.aspectRatio || '9:16'}
+                exclusive
+                onChange={handleAspectRatioChange}
+                aria-label="aspect ratio"
+                size="small"
+                sx={{
+                  '& .MuiToggleButton-root': {
+                    borderColor: '#444444',
+                    color: '#CCCCCC',
+                    '&.Mui-selected': {
+                      backgroundColor: '#FFFFFF',
+                      color: '#000000',
+                      '&:hover': {
+                        backgroundColor: '#FFFFFF',
+                      },
+                    },
+                    '&:hover': {
+                      backgroundColor: '#222222',
+                    },
+                  },
+                }}
+              >
+                <ToggleButton value="9:16" aria-label="9:16">
+                  9:16
+                </ToggleButton>
+                <ToggleButton value="4:5" aria-label="4:5">
+                  4:5
+                </ToggleButton>
+              </ToggleButtonGroup>
             </Box>
           )}
         </Stack>

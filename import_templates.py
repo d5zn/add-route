@@ -265,6 +265,11 @@ def create_template_structure(template_data, club_id):
     route_line_needs_gradient = club_id == 'not-in-paris'
     
     # 1. Route line (path element)
+    # Route is rendered dynamically from polyline data in main app
+    # We'll create a placeholder route line for editing
+    # From renderRoute: route is drawn between routeTop and routeBottom
+    # routeTop = (safeArea.top + 150) = 250 + 150 = 400
+    # routeBottom = height - (safeArea.bottom + 280) = 1920 - 380 = 1540
     route_line_id = generate_id()
     # For Not In Paris, use gradient; for HEDONISM, use solid pink
     if route_line_needs_gradient:
@@ -288,33 +293,33 @@ def create_template_structure(template_data, club_id):
             'width': 8
         }
     
+    # Create a sample route line (will be replaced with actual route data)
+    # Route area: from y=400 to y=1540, centered horizontally
     route_line = {
         'id': route_line_id,
         'name': 'Route Line',
         'kind': 'shape',
         'visible': True,
         'locked': False,
-        'position': {'x': 540, 'y': 400},  # Center-ish
+        'position': {'x': 540, 'y': 400},  # Center horizontally, start at routeTop
         'rotation': 0,
         'scale': {'x': 1, 'y': 1},
         'opacity': 1,
         'zIndex': 2,
-        'box': {'width': 800, 'height': 1200},
+        'box': {'width': 920, 'height': 1140},  # availableWidth x (routeBottom - routeTop)
         'shape': 'custom',
         'points': [
             {'x': 0, 'y': 0},
-            {'x': 50, 'y': 100},
-            {'x': 150, 'y': 200},
-            {'x': 300, 'y': 300},
-            {'x': 500, 'y': 400},
-            {'x': 700, 'y': 500},
-            {'x': 800, 'y': 600},
-            {'x': 750, 'y': 700},
-            {'x': 600, 'y': 800},
-            {'x': 400, 'y': 900},
-            {'x': 200, 'y': 1000},
-            {'x': 100, 'y': 1100},
-            {'x': 50, 'y': 1200}
+            {'x': 100, 'y': 200},
+            {'x': 200, 'y': 300},
+            {'x': 300, 'y': 400},
+            {'x': 400, 'y': 500},
+            {'x': 500, 'y': 600},
+            {'x': 600, 'y': 700},
+            {'x': 700, 'y': 800},
+            {'x': 800, 'y': 900},
+            {'x': 900, 'y': 1000},
+            {'x': 920, 'y': 1140}
         ],
         'stroke': route_line_stroke,
         'fill': None
@@ -322,6 +327,9 @@ def create_template_structure(template_data, club_id):
     elements.append(route_line)
     
     # 2. Title text element
+    # From renderTitle: titleTop = safeArea.top = 250, leftMargin = safeArea.left = 80
+    # maxWidth = logoX - leftMargin - spacingFromLogo = 820 - 80 - 20 = 720
+    # fontSize = 52, font = bold
     title_id = generate_id()
     title_element = {
         'id': title_id,
@@ -329,19 +337,19 @@ def create_template_structure(template_data, club_id):
         'kind': 'text',
         'visible': True,
         'locked': False,
-        'position': {'x': 540, 'y': 100},
+        'position': {'x': 80, 'y': 250},  # safeArea.left, safeArea.top
         'rotation': 0,
         'scale': {'x': 1, 'y': 1},
         'opacity': 1,
         'zIndex': 3,
-        'box': {'width': 800, 'height': 80},
+        'box': {'width': 720, 'height': 100},  # maxWidth from main app
         'content': 'Route Title',
         'style': {
             'fontFamily': 'Inter',
-            'fontWeight': 600,
+            'fontWeight': 700,  # bold
             'fontStyle': 'normal',
-            'fontSize': 48,
-            'lineHeight': 56,
+            'fontSize': 52,  # From main app
+            'lineHeight': 62,  # fontSize * 1.2
             'letterSpacing': 0,
             'fill': '#FFFFFF',
             'textAlign': 'left',
@@ -352,6 +360,8 @@ def create_template_structure(template_data, club_id):
     elements.append(title_element)
     
     # 2.5. Date text element
+    # From renderTitle: subtitleFontSize = 32, subtitleY = titleEndY + titleLineHeight + spacingBetweenTitleAndDate
+    # Positioned after title with spacing
     date_id = generate_id()
     date_element = {
         'id': date_id,
@@ -359,95 +369,158 @@ def create_template_structure(template_data, club_id):
         'kind': 'text',
         'visible': True,
         'locked': False,
-        'position': {'x': 540, 'y': 180},
+        'position': {'x': 80, 'y': 350},  # Below title (250 + 100)
         'rotation': 0,
         'scale': {'x': 1, 'y': 1},
         'opacity': 1,
         'zIndex': 3,
-        'box': {'width': 800, 'height': 40},
-        'content': 'January 15, 2024',
+        'box': {'width': 720, 'height': 50},
+        'content': 'JANUARY 15, 2024',  # Uppercase as in main app
         'style': {
             'fontFamily': 'Inter',
             'fontWeight': 400,
             'fontStyle': 'normal',
-            'fontSize': 20,
-            'lineHeight': 28,
+            'fontSize': 32,  # From main app
+            'lineHeight': 38,  # fontSize * 1.2
             'letterSpacing': 0,
             'fill': '#FFFFFF',
             'textAlign': 'left',
-            'textTransform': 'none'
+            'textTransform': 'uppercase'
         },
         'autoResize': 'width'
     }
     elements.append(date_element)
     
     # 3. Logo element (club logo)
+    # Real logo paths from main app: /logo_NIP.svg for not-in-paris, /logo_HC.png for hedonism
     logo_id = generate_id()
-    # Try different logo asset IDs
-    logo_asset_ids = [
-        f'{club_id}-logo.png',
-        f'{club_id}-logo.svg',
-        f'logo-{club_id}.png',
-        f'logo-{club_id}.svg',
-        'logo.png',
-        'logo.svg',
-    ]
+    if club_id == 'hedonism':
+        logo_asset_id = 'logo_HC.png'
+    else:
+        logo_asset_id = 'logo_NIP.svg'
+    
+    # Logo position: right top corner
+    # From renderLogo: logoSize = 180, logoX = width - logoSize - safeArea.right, logoY = safeArea.top - 84
+    # safeArea.right = 80, safeArea.top = 250
+    # So: logoX = 1080 - 180 - 80 = 820, logoY = 250 - 84 = 166
     logo_element = {
         'id': logo_id,
         'name': 'Club Logo',
         'kind': 'image',
         'visible': True,
         'locked': False,
-        'position': {'x': 100, 'y': 100},
+        'position': {'x': 820, 'y': 166},  # Right top corner position
         'rotation': 0,
         'scale': {'x': 1, 'y': 1},
         'opacity': 1,
         'zIndex': 4,
-        'box': {'width': 200, 'height': 200},
-        'assetId': logo_asset_ids[0]  # Primary asset ID
+        'box': {'width': 180, 'height': 180},  # Logo size from main app
+        'assetId': logo_asset_id
     }
     elements.append(logo_element)
     
     # 4. Stats text elements (Distance, Elevation, Time, Speed)
-    # Top row stats (Distance, Elevation, Time)
-    stats_y = 1700
-    stats = [
-        {'label': 'DISTANCE', 'value': '0.00 km', 'x': 100},
-        {'label': 'ELEVATION', 'value': '0 m', 'x': 400},
-        {'label': 'TIME', 'value': '0h 0m', 'x': 700}
-    ]
+    # From renderMetrics:
+    # - labelFontSize = 32, valueFontSize = 52
+    # - cellHeight = valueFontSize + labelFontSize + 20 = 104
+    # - leftMargin = safeArea.left = 80
+    # - availableWidth = width - (safeArea.left + safeArea.right) = 1080 - 160 = 920
+    # - cellWidth = availableWidth / 3 = 306.67
+    # - startY = height - safeArea.bottom = 1920 - 100 = 1820
+    # - firstRowY = startY = 1820 (Speed)
+    # - secondRowY = startY - cellHeight - 44 = 1820 - 104 - 44 = 1672 (Distance, Elevation, Time)
     
-    for stat in stats:
-        stat_id = generate_id()
-        stat_element = {
-            'id': stat_id,
-            'name': stat['label'],
-            'kind': 'text',
-            'visible': True,
-            'locked': False,
-            'position': {'x': stat['x'], 'y': stats_y},
-            'rotation': 0,
-            'scale': {'x': 1, 'y': 1},
-            'opacity': 1,
-            'zIndex': 3,
-            'box': {'width': 200, 'height': 80},  # Increased height for multiline
-            'content': f"{stat['label']}\n{stat['value']}",
-            'style': {
-                'fontFamily': 'Inter',
-                'fontWeight': 400,
-                'fontStyle': 'normal',
-                'fontSize': 24,
-                'lineHeight': 32,
-                'letterSpacing': 0,
-                'fill': '#FFFFFF',
-                'textAlign': 'left',
-                'textTransform': 'uppercase'
-            },
-            'autoResize': 'none'
-        }
-        elements.append(stat_element)
+    # Distance (col=0, left align, second row)
+    distance_id = generate_id()
+    distance_element = {
+        'id': distance_id,
+        'name': 'DISTANCE',
+        'kind': 'text',
+        'visible': True,
+        'locked': False,
+        'position': {'x': 80, 'y': 1672 - 52 - 10},  # secondRowY - valueFontSize - 10, left align
+        'rotation': 0,
+        'scale': {'x': 1, 'y': 1},
+        'opacity': 1,
+        'zIndex': 3,
+        'box': {'width': 300, 'height': 104},
+        'content': 'DISTANCE\n0.00 km',
+        'style': {
+            'fontFamily': 'Inter',
+            'fontWeight': 400,  # Label
+            'fontStyle': 'normal',
+            'fontSize': 32,  # labelFontSize
+            'lineHeight': 38,
+            'letterSpacing': 0,
+            'fill': '#FFFFFF',
+            'textAlign': 'left',
+            'textTransform': 'uppercase'
+        },
+        'autoResize': 'none'
+    }
+    elements.append(distance_element)
     
-    # 5. Speed element (bottom center)
+    # Elevation (col=1, center align, second row)
+    elevation_id = generate_id()
+    elevation_element = {
+        'id': elevation_id,
+        'name': 'ELEVATION',
+        'kind': 'text',
+        'visible': True,
+        'locked': False,
+        'position': {'x': 80 + 306, 'y': 1672 - 52 - 10},  # leftMargin + cellWidth, center align
+        'rotation': 0,
+        'scale': {'x': 1, 'y': 1},
+        'opacity': 1,
+        'zIndex': 3,
+        'box': {'width': 300, 'height': 104},
+        'content': 'ELEVATION\n0 m',
+        'style': {
+            'fontFamily': 'Inter',
+            'fontWeight': 400,
+            'fontStyle': 'normal',
+            'fontSize': 32,
+            'lineHeight': 38,
+            'letterSpacing': 0,
+            'fill': '#FFFFFF',
+            'textAlign': 'center',
+            'textTransform': 'uppercase'
+        },
+        'autoResize': 'none'
+    }
+    elements.append(elevation_element)
+    
+    # Time (col=2, right align, second row)
+    time_id = generate_id()
+    time_element = {
+        'id': time_id,
+        'name': 'TIME',
+        'kind': 'text',
+        'visible': True,
+        'locked': False,
+        'position': {'x': 80 + 306 * 2, 'y': 1672 - 52 - 10},  # leftMargin + 2*cellWidth, right align
+        'rotation': 0,
+        'scale': {'x': 1, 'y': 1},
+        'opacity': 1,
+        'zIndex': 3,
+        'box': {'width': 300, 'height': 104},
+        'content': 'TIME\n0h 0m',
+        'style': {
+            'fontFamily': 'Inter',
+            'fontWeight': 400,
+            'fontStyle': 'normal',
+            'fontSize': 32,
+            'lineHeight': 38,
+            'letterSpacing': 0,
+            'fill': '#FFFFFF',
+            'textAlign': 'right',
+            'textTransform': 'uppercase'
+        },
+        'autoResize': 'none'
+    }
+    elements.append(time_element)
+    
+    # Speed (center, first row)
     speed_id = generate_id()
     speed_element = {
         'id': speed_id,
@@ -455,19 +528,19 @@ def create_template_structure(template_data, club_id):
         'kind': 'text',
         'visible': True,
         'locked': False,
-        'position': {'x': 400, 'y': 1800},  # Bottom center
+        'position': {'x': 80 + 306, 'y': 1820 - 52 - 10},  # leftMargin + cellWidth, center, firstRowY
         'rotation': 0,
         'scale': {'x': 1, 'y': 1},
         'opacity': 1,
         'zIndex': 3,
-        'box': {'width': 280, 'height': 80},  # Increased height for multiline
-        'content': 'AVG SPEED\n15.2 km/h',
+        'box': {'width': 300, 'height': 104},
+        'content': 'SPEED\n—',
         'style': {
             'fontFamily': 'Inter',
             'fontWeight': 400,
             'fontStyle': 'normal',
-            'fontSize': 24,
-            'lineHeight': 32,
+            'fontSize': 32,
+            'lineHeight': 38,
             'letterSpacing': 0,
             'fill': '#FFFFFF',
             'textAlign': 'center',
@@ -478,18 +551,19 @@ def create_template_structure(template_data, club_id):
     elements.append(speed_element)
     
     # Create overlay layer for darkening effect
+    # From renderOverlay: overlay is drawn when backgroundMode === 'image'
     overlay_layer_id = generate_id()
     overlay_element_id = generate_id()
     overlay_element = {
         'id': overlay_element_id,
         'name': 'Overlay',
         'kind': 'shape',
-        'visible': True,
+        'visible': config.get('backgroundMode') == 'image',  # Only visible when background is image
         'locked': False,
         'position': {'x': 0, 'y': 0},
         'rotation': 0,
         'scale': {'x': 1, 'y': 1},
-        'opacity': 0.3,  # Semi-transparent overlay
+        'opacity': 0.3,  # Semi-transparent overlay from main app
         'zIndex': 1,
         'box': {'width': 1080, 'height': 1920},
         'shape': 'rectangle',

@@ -54,6 +54,7 @@ export const useEditorStore = create<EditorStore>()(
           showRulers: true,
           zoom: 1,
           pan: { x: 0, y: 0 },
+          aspectRatio: '9:16',
         },
       },
       setTemplate: (template) =>

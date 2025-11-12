@@ -4,7 +4,13 @@ import { useEditorStore } from '../../store/useEditorStore'
 import type { Page, EditorElement, TextElement, ShapeElement, ImageElement } from '../../types'
 
 const CANVAS_WIDTH = 1080
-const CANVAS_HEIGHT = 1920
+const CANVAS_HEIGHT_9_16 = 1920
+const CANVAS_HEIGHT_4_5 = 1350
+
+// Instagram safe zones (top and bottom areas that may be cut off)
+const INSTAGRAM_SAFE_ZONE_TOP_9_16 = 250 // Top safe area for 9:16
+const INSTAGRAM_SAFE_ZONE_TOP_4_5 = 160 // Top safe area for 4:5
+const INSTAGRAM_SAFE_ZONE_BOTTOM = 100 // Bottom safe area (same for both)
 
 export const NativeCanvasEditor = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -19,10 +25,15 @@ export const NativeCanvasEditor = () => {
   const template = useEditorStore((store) => store.state.template)
   const pageId = useEditorStore((store) => store.state.pageId)
   const selectedElementIds = useEditorStore((store) => store.state.selectedElementIds)
+  const aspectRatio = useEditorStore((store) => store.state.ui.aspectRatio || '9:16')
   const selectElements = useEditorStore((store) => store.selectElements)
   const moveElement = useEditorStore((store) => store.moveElement)
 
   const page = template.pages.find((p) => p.id === pageId) || template.pages[0]
+  
+  // Calculate canvas dimensions based on aspect ratio
+  const canvasHeight = aspectRatio === '4:5' ? CANVAS_HEIGHT_4_5 : CANVAS_HEIGHT_9_16
+  const safeZoneTop = aspectRatio === '4:5' ? INSTAGRAM_SAFE_ZONE_TOP_4_5 : INSTAGRAM_SAFE_ZONE_TOP_9_16
 
   // Calculate fit-to-screen scale
   useEffect(() => {
@@ -54,26 +65,29 @@ export const NativeCanvasEditor = () => {
         return
       }
 
-      // If no page, still set up container
-      if (!page) {
-        setScale(1)
-        setPan({ x: (width - CANVAS_WIDTH) / 2, y: (height - CANVAS_HEIGHT) / 2 })
-        return
-      }
+        // Get current canvas height based on aspect ratio
+        const currentCanvasHeight = aspectRatio === '4:5' ? CANVAS_HEIGHT_4_5 : CANVAS_HEIGHT_9_16
 
-      // Calculate scale to fit canvas
-      const scaleX = (width - 64) / CANVAS_WIDTH
-      const scaleY = (height - 64) / CANVAS_HEIGHT
-      const fitScale = Math.min(scaleX, scaleY, 1)
-      setScale(fitScale)
+        // If no page, still set up container
+        if (!page) {
+          setScale(1)
+          setPan({ x: (width - CANVAS_WIDTH) / 2, y: (height - currentCanvasHeight) / 2 })
+          return
+        }
 
-      // Center canvas
-      const scaledWidth = CANVAS_WIDTH * fitScale
-      const scaledHeight = CANVAS_HEIGHT * fitScale
-      setPan({
-        x: (width - scaledWidth) / 2,
-        y: (height - scaledHeight) / 2,
-      })
+        // Calculate scale to fit canvas
+        const scaleX = (width - 64) / CANVAS_WIDTH
+        const scaleY = (height - 64) / currentCanvasHeight
+        const fitScale = Math.min(scaleX, scaleY, 1)
+        setScale(fitScale)
+
+        // Center canvas
+        const scaledWidth = CANVAS_WIDTH * fitScale
+        const scaledHeight = currentCanvasHeight * fitScale
+        setPan({
+          x: (width - scaledWidth) / 2,
+          y: (height - scaledHeight) / 2,
+        })
     }
 
     // Initial update
@@ -92,7 +106,7 @@ export const NativeCanvasEditor = () => {
       resizeObserver.disconnect()
       window.removeEventListener('resize', updateSize)
     }
-  }, [page])
+  }, [page, aspectRatio])
 
   // Render canvas
   const render = useCallback(() => {
@@ -108,27 +122,31 @@ export const NativeCanvasEditor = () => {
       return
     }
 
+    // Get current canvas dimensions based on aspect ratio
+    const currentCanvasHeight = aspectRatio === '4:5' ? CANVAS_HEIGHT_4_5 : CANVAS_HEIGHT_9_16
+    const currentSafeZoneTop = aspectRatio === '4:5' ? INSTAGRAM_SAFE_ZONE_TOP_4_5 : INSTAGRAM_SAFE_ZONE_TOP_9_16
+
     // Set canvas size
     canvas.width = CANVAS_WIDTH
-    canvas.height = CANVAS_HEIGHT
+    canvas.height = currentCanvasHeight
 
     // Clear canvas
-    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+    ctx.clearRect(0, 0, CANVAS_WIDTH, currentCanvasHeight)
 
     if (!page) {
       // Render placeholder if no page
       ctx.fillStyle = '#1a1a1a'
-      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+      ctx.fillRect(0, 0, CANVAS_WIDTH, currentCanvasHeight)
       ctx.fillStyle = '#666666'
       ctx.font = '32px Inter'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText('Нет страницы', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2)
+      ctx.fillText('Нет страницы', CANVAS_WIDTH / 2, currentCanvasHeight / 2)
       return
     }
 
     // Render background
-    renderBackground(ctx, page)
+    renderBackground(ctx, page, currentCanvasHeight)
 
     // Render overlay layer first (if exists)
     const overlayLayer = page.layers?.find((l) => l.name === 'Overlay')
@@ -150,7 +168,10 @@ export const NativeCanvasEditor = () => {
             renderElement(ctx, element, selectedElementIds.includes(element.id))
           })
       })
-  }, [page, selectedElementIds])
+
+    // Render Instagram safe zones (after content, so they appear on top)
+    renderSafeZones(ctx, currentCanvasHeight, currentSafeZoneTop)
+  }, [page, selectedElementIds, aspectRatio])
 
   useEffect(() => {
     render()
@@ -320,8 +341,9 @@ export const NativeCanvasEditor = () => {
 
   // Always render canvas, even if no page
 
+  const currentCanvasHeight = aspectRatio === '4:5' ? CANVAS_HEIGHT_4_5 : CANVAS_HEIGHT_9_16
   const displayWidth = CANVAS_WIDTH * scale
-  const displayHeight = CANVAS_HEIGHT * scale
+  const displayHeight = currentCanvasHeight * scale
 
   return (
     <Box
@@ -362,20 +384,20 @@ export const NativeCanvasEditor = () => {
 }
 
 // Render functions
-function renderBackground(ctx: CanvasRenderingContext2D, page: Page) {
+function renderBackground(ctx: CanvasRenderingContext2D, page: Page, canvasHeight: number) {
   if (page.background?.gradient) {
-    const gradient = ctx.createLinearGradient(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+    const gradient = ctx.createLinearGradient(0, 0, CANVAS_WIDTH, canvasHeight)
     page.background.gradient.stops.forEach((stop) => {
       gradient.addColorStop(stop.offset, stop.color)
     })
     ctx.fillStyle = gradient
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+    ctx.fillRect(0, 0, CANVAS_WIDTH, canvasHeight)
   } else if (page.background?.color) {
     ctx.fillStyle = page.background.color
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+    ctx.fillRect(0, 0, CANVAS_WIDTH, canvasHeight)
   } else {
     ctx.fillStyle = '#000000'
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+    ctx.fillRect(0, 0, CANVAS_WIDTH, canvasHeight)
   }
 }
 
@@ -400,7 +422,6 @@ function renderElement(ctx: CanvasRenderingContext2D, element: EditorElement, is
 function renderTextElement(ctx: CanvasRenderingContext2D, element: TextElement, isSelected: boolean) {
   const { position, content, style, box } = element
 
-  ctx.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize}px ${style.fontFamily}`
   ctx.fillStyle = style.fill
   ctx.textAlign = style.textAlign as CanvasTextAlign
   ctx.textBaseline = 'top'
@@ -408,12 +429,39 @@ function renderTextElement(ctx: CanvasRenderingContext2D, element: TextElement, 
   // Handle multiline text
   const lines = content.split('\n')
   const lineHeight = style.lineHeight
-  let y = position.y
+  let currentY = position.y
 
-  lines.forEach((line) => {
-    ctx.fillText(line, position.x, y)
-    y += lineHeight
-  })
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    
+    // For metrics: first line is label (normal weight, fontSize), second line is value (bold, fontSize * 1.625)
+    // Check if this looks like a metric (has label and value on separate lines)
+    const isMetricValue = i === 1 && lines.length === 2 && lines[0].toUpperCase() === lines[0]
+    
+    if (isMetricValue) {
+      // Value line: bold, larger font (52px = 32 * 1.625)
+      ctx.font = `bold ${Math.floor(style.fontSize * 1.625)}px ${style.fontFamily}`
+    } else {
+      // Label line or regular text: use style as is
+      ctx.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize}px ${style.fontFamily}`
+    }
+    
+    let x = position.x
+    if (style.textAlign === 'center') {
+      x = position.x + box.width / 2
+    } else if (style.textAlign === 'right') {
+      x = position.x + box.width
+    }
+    
+    ctx.fillText(line, x, currentY)
+    
+    // For metrics, add spacing between label and value (10px from main app)
+    if (i === 0 && lines.length === 2) {
+      currentY += 10 // Spacing between label and value
+    } else {
+      currentY += lineHeight
+    }
+  }
 
   // Draw selection border
   if (isSelected) {
@@ -421,6 +469,51 @@ function renderTextElement(ctx: CanvasRenderingContext2D, element: TextElement, 
     ctx.lineWidth = 2
     ctx.strokeRect(position.x - 2, position.y - 2, box.width + 4, box.height + 4)
   }
+}
+
+function renderSafeZones(ctx: CanvasRenderingContext2D) {
+  // Draw top safe zone (may be cut off in Instagram)
+  ctx.save()
+  ctx.fillStyle = 'rgba(255, 0, 0, 0.1)' // Semi-transparent red
+  ctx.fillRect(0, 0, CANVAS_WIDTH, INSTAGRAM_SAFE_ZONE_TOP)
+  
+  // Draw bottom safe zone (may be cut off in Instagram)
+  ctx.fillRect(0, CANVAS_HEIGHT - INSTAGRAM_SAFE_ZONE_BOTTOM, CANVAS_WIDTH, INSTAGRAM_SAFE_ZONE_BOTTOM)
+  
+  // Draw border lines
+  ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)'
+  ctx.lineWidth = 2
+  ctx.setLineDash([5, 5])
+  
+  // Top border
+  ctx.beginPath()
+  ctx.moveTo(0, INSTAGRAM_SAFE_ZONE_TOP)
+  ctx.lineTo(CANVAS_WIDTH, INSTAGRAM_SAFE_ZONE_TOP)
+  ctx.stroke()
+  
+  // Bottom border
+  ctx.beginPath()
+  ctx.moveTo(0, CANVAS_HEIGHT - INSTAGRAM_SAFE_ZONE_BOTTOM)
+  ctx.lineTo(CANVAS_WIDTH, CANVAS_HEIGHT - INSTAGRAM_SAFE_ZONE_BOTTOM)
+  ctx.stroke()
+  
+  ctx.restore()
+  
+  // Add labels
+  ctx.save()
+  ctx.fillStyle = 'rgba(255, 0, 0, 0.8)'
+  ctx.font = '12px Inter'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.setLineDash([])
+  
+  // Top label
+  ctx.fillText('⚠️ Safe Zone Top', CANVAS_WIDTH / 2, INSTAGRAM_SAFE_ZONE_TOP / 2)
+  
+  // Bottom label
+  ctx.fillText('⚠️ Safe Zone Bottom', CANVAS_WIDTH / 2, CANVAS_HEIGHT - INSTAGRAM_SAFE_ZONE_BOTTOM / 2)
+  
+  ctx.restore()
 }
 
 function renderShapeElement(ctx: CanvasRenderingContext2D, element: ShapeElement, isSelected: boolean) {
@@ -517,11 +610,14 @@ function renderImageElement(ctx: CanvasRenderingContext2D, element: ImageElement
 
   // Try to load image
   if (assetId) {
+    // Logo paths from main app: /logo_NIP.svg, /logo_HC.png
     const imagePaths = [
+      `/${assetId}`,  // Root path (main app uses root paths)
+      `/route/${assetId}`,
       `/assets/${assetId}`,
       `/route/assets/${assetId}`,
-      `/route/${assetId}`,
-      `/${assetId}`,
+      `https://stg.addicted.design/${assetId}`,
+      `https://stg.addicted.design/route/${assetId}`,
       `https://stg.addicted.design/assets/${assetId}`,
       `https://stg.addicted.design/route/assets/${assetId}`,
     ]
@@ -575,5 +671,50 @@ function renderImageElement(ctx: CanvasRenderingContext2D, element: ImageElement
     ctx.lineWidth = 2
     ctx.strokeRect(position.x - 2, position.y - 2, box.width + 4, box.height + 4)
   }
+}
+
+function renderSafeZones(ctx: CanvasRenderingContext2D) {
+  // Draw top safe zone (may be cut off in Instagram)
+  ctx.save()
+  ctx.fillStyle = 'rgba(255, 0, 0, 0.1)' // Semi-transparent red
+  ctx.fillRect(0, 0, CANVAS_WIDTH, INSTAGRAM_SAFE_ZONE_TOP)
+  
+  // Draw bottom safe zone (may be cut off in Instagram)
+  ctx.fillRect(0, CANVAS_HEIGHT - INSTAGRAM_SAFE_ZONE_BOTTOM, CANVAS_WIDTH, INSTAGRAM_SAFE_ZONE_BOTTOM)
+  
+  // Draw border lines
+  ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)'
+  ctx.lineWidth = 2
+  ctx.setLineDash([5, 5])
+  
+  // Top border
+  ctx.beginPath()
+  ctx.moveTo(0, INSTAGRAM_SAFE_ZONE_TOP)
+  ctx.lineTo(CANVAS_WIDTH, INSTAGRAM_SAFE_ZONE_TOP)
+  ctx.stroke()
+  
+  // Bottom border
+  ctx.beginPath()
+  ctx.moveTo(0, CANVAS_HEIGHT - INSTAGRAM_SAFE_ZONE_BOTTOM)
+  ctx.lineTo(CANVAS_WIDTH, CANVAS_HEIGHT - INSTAGRAM_SAFE_ZONE_BOTTOM)
+  ctx.stroke()
+  
+  ctx.restore()
+  
+  // Add labels
+  ctx.save()
+  ctx.fillStyle = 'rgba(255, 0, 0, 0.8)'
+  ctx.font = '12px Inter'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.setLineDash([])
+  
+  // Top label
+  ctx.fillText('⚠️ Safe Zone Top', CANVAS_WIDTH / 2, INSTAGRAM_SAFE_ZONE_TOP / 2)
+  
+  // Bottom label
+  ctx.fillText('⚠️ Safe Zone Bottom', CANVAS_WIDTH / 2, CANVAS_HEIGHT - INSTAGRAM_SAFE_ZONE_BOTTOM / 2)
+  
+  ctx.restore()
 }
 
