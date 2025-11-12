@@ -1,4 +1,5 @@
-import { useState, useRef, ChangeEvent } from 'react'
+import { useState, useRef } from 'react'
+import type { ChangeEvent } from 'react'
 import { Box, Button, Stack, Typography, CircularProgress } from '@mui/material'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import { useEditorStore } from '../../store/useEditorStore'
