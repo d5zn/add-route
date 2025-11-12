@@ -5,7 +5,7 @@ import { useClubStore } from '../store/useClubStore'
 import { useEditorStore, useTemplate as useEditorTemplate } from '../store/useEditorStore'
 import { api } from '../services/api.ts'
 import { ElementListPanel } from '../components/sidebar/ElementListPanel'
-import { EditorCanvas } from '../components/canvas/EditorCanvas'
+import { NativeCanvasEditor } from '../components/canvas/NativeCanvasEditor'
 import { InspectorPanel } from '../components/inspector/InspectorPanel'
 
 export const TemplateEditorPage = () => {
@@ -113,7 +113,7 @@ export const TemplateEditorPage = () => {
   return (
     <Box display="flex" flex={1} minHeight={0}>
       <ElementListPanel />
-      <EditorCanvas />
+      <NativeCanvasEditor />
       <InspectorPanel />
     </Box>
   )
