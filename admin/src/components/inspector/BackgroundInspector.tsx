@@ -1,7 +1,6 @@
 import { Box, Button, Stack, Typography } from '@mui/material'
 import { HexColorPicker } from 'react-colorful'
 import { useEditorStore } from '../../store/useEditorStore'
-import type { Page } from '../../types'
 
 export const BackgroundInspector = () => {
   const template = useEditorStore((store) => store.state.template)
