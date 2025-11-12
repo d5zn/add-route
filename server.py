@@ -30,38 +30,123 @@ ADMIN_LOGIN_PAGE = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Route Admin - Login</title>
     <style>
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-        body { margin: 0; background: #0f172a; color: #ffffff; display: flex; min-height: 100vh; align-items: center; justify-content: center; }
-        .card { background: rgba(15, 23, 42, 0.85); border-radius: 16px; padding: 32px; width: min(360px, calc(100vw - 32px)); box-shadow: 0 18px 60px rgba(15, 23, 42, 0.45); backdrop-filter: blur(12px); }
-        h1 { margin: 0 0 12px; font-size: 24px; font-weight: 600; }
-        p { margin: 0 0 24px; opacity: 0.7; }
-        label { display: block; font-size: 13px; margin-bottom: 8px; opacity: 0.8; letter-spacing: 0.04em; text-transform: uppercase; }
-        input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.4); background: rgba(15, 23, 42, 0.6); color: #f8fafc; font-size: 14px; transition: border 0.2s ease; }
-        input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
-        button { width: 100%; padding: 12px; margin-top: 20px; border: none; border-radius: 10px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; font-weight: 600; font-size: 15px; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
-        button:hover { transform: translateY(-1px); box-shadow: 0 18px 40px rgba(59, 130, 246, 0.35); }
-        .error { margin-top: 16px; font-size: 13px; color: #fca5a5; display: none; }
-        .branding { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
-        .dot { width: 10px; height: 10px; border-radius: 50%; background: #3b82f6; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #000000;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .card { 
+            background: #000000;
+            border: 1px solid #222222;
+            border-radius: 0;
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 420px;
+        }
+        .branding {
+            margin-bottom: 40px;
+        }
+        .branding-text {
+            font-family: '"SF Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            font-style: italic;
+            font-weight: 850;
+            font-size: 24px;
+            letter-spacing: 0.24em;
+            color: #FFFFFF;
+            text-transform: uppercase;
+        }
+        h1 { 
+            margin: 0 0 8px;
+            font-size: 32px;
+            font-weight: 300;
+            color: #FFFFFF;
+        }
+        p { 
+            margin: 0 0 32px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.5;
+        }
+        label { 
+            display: block;
+            font-size: 12px;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.8);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        input { 
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 0;
+            border: 1px solid #222222;
+            background: #000000;
+            color: #ffffff;
+            font-size: 15px;
+            font-family: inherit;
+            transition: border-color 0.2s ease;
+            margin-bottom: 20px;
+        }
+        input:focus { 
+            outline: none;
+            border-color: #ffffff;
+        }
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        button { 
+            width: 100%;
+            padding: 14px;
+            margin-top: 8px;
+            border: 1px solid #ffffff;
+            border-radius: 0;
+            background: #000000;
+            color: #ffffff;
+            font-weight: 500;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        button:hover { 
+            background: #ffffff;
+            color: #000000;
+        }
+        button:active {
+            opacity: 0.8;
+        }
+        .error { 
+            margin-top: 16px;
+            font-size: 13px;
+            color: #ff4444;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="card">
         <div class="branding">
-            <div class="dot"></div>
-            <span style="letter-spacing: 0.3em; font-size: 12px; opacity: 0.6;">ADDICTED</span>
+            <div class="branding-text">Route Admin</div>
         </div>
         <h1>Admin</h1>
         <p>Sign in to manage templates and club assets.</p>
         <form id="login-form">
             <label for="username">Username</label>
-            <input id="username" name="username" type="text" autocomplete="username" required />
+            <input id="username" name="username" type="text" autocomplete="username" placeholder="Enter username" required />
 
             <label for="password">Password</label>
-            <input id="password" name="password" type="password" autocomplete="current-password" required />
+            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter password" required />
 
             <button type="submit">Continue</button>
             <div class="error" id="error">Invalid credentials. Try again.</div>

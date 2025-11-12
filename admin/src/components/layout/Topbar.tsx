@@ -40,18 +40,9 @@ export const Topbar = () => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 1,
-                '&::before': {
-                  content: '""',
-                  display: 'inline-block',
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  background: '#E64400',
-                  marginRight: 12,
-                },
               }}
             >
-              add:RoutAdmin
+              Route Admin
             </Typography>
           </Box>
           {isEditorRoute && (

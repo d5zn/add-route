@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Box } from '@mui/material'
-import { Stage, Layer, Rect, Text, Transformer } from 'react-konva'
+import { Stage, Layer, Rect, Text, Transformer, Line, Image as KonvaImage } from 'react-konva'
 import Konva from 'konva'
 import { useEditorStore } from '../../store/useEditorStore'
 import { createDefaultTextElement } from '../../utils/elements'
-import type { TextElement } from '../../types'
+import type { TextElement, ShapeElement, ImageElement, EditorElement } from '../../types'
 
 const CANVAS_PADDING = 64
 const MIN_ZOOM = 0.1
@@ -70,10 +70,10 @@ export const EditorCanvas = () => {
     
     updateUi((ui) => {
       ui.zoom = fitZoom
-      // Center the canvas
+      // Center the canvas (accounting for stage padding)
       ui.pan = {
-        x: (containerSize.width - page.size.width * fitZoom) / 2 - CANVAS_PADDING,
-        y: (containerSize.height - page.size.height * fitZoom) / 2 - CANVAS_PADDING,
+        x: (containerSize.width - page.size.width * fitZoom) / 2 - CANVAS_PADDING - stagePadding,
+        y: (containerSize.height - page.size.height * fitZoom) / 2 - CANVAS_PADDING - stagePadding,
       }
     })
   }, [page, containerSize, updateUi])
@@ -120,8 +120,10 @@ export const EditorCanvas = () => {
     return <Box flex={1} display="flex" alignItems="center" justifyContent="center">Нет страницы</Box>
   }
 
-  const canvasWidth = page.size.width * ui.zoom + CANVAS_PADDING * 2
-  const canvasHeight = page.size.height * ui.zoom + CANVAS_PADDING * 2
+  // Make stage larger to allow panning without clipping
+  const stagePadding = 200
+  const canvasWidth = page.size.width * ui.zoom + CANVAS_PADDING * 2 + stagePadding * 2
+  const canvasHeight = page.size.height * ui.zoom + CANVAS_PADDING * 2 + stagePadding * 2
 
   const handleElementRef = (id: string, node: Konva.Node | null) => {
     if (node) {
@@ -159,40 +161,161 @@ export const EditorCanvas = () => {
     })
   }
 
-  const renderTextElement = (element: TextElement) => (
-    <Text
-      key={element.id}
-      ref={(node) => handleElementRef(element.id, node)}
-      text={element.content}
-      x={element.position.x}
-      y={element.position.y}
-      width={element.box.width}
-      height={element.box.height}
-      draggable
-      fontFamily={element.style.fontFamily}
-      fontSize={element.style.fontSize}
-      fontStyle={`${element.style.fontStyle} ${element.style.fontWeight}`.trim()}
-      fill={element.style.fill}
-      align={element.style.textAlign}
-      lineHeight={element.style.lineHeight / element.style.fontSize}
-      letterSpacing={element.style.letterSpacing}
-      shadowColor={element.style.shadow?.color}
-      shadowBlur={element.style.shadow?.blur ?? 0}
-      shadowOffset={element.style.shadow?.offset ?? { x: 0, y: 0 }}
-      opacity={element.opacity}
-      rotation={element.rotation}
-      onDragStart={() => {
-        selectElements([element.id])
-      }}
-      onDragEnd={(evt) => {
-        const node = evt.target
-        moveElement(element.id, { x: node.x(), y: node.y() })
-      }}
-      onClick={() => selectElements([element.id])}
-      onTap={() => selectElements([element.id])}
-      listening
-    />
+  const renderTextElement = (element: TextElement) => {
+    // Konva Text needs proper wrapping for multiline text
+    const text = element.content || ''
+    const hasNewlines = text.includes('\n')
+    
+    return (
+      <Text
+        key={element.id}
+        ref={(node) => handleElementRef(element.id, node)}
+        text={text}
+        x={element.position.x}
+        y={element.position.y}
+        width={hasNewlines ? element.box.width : undefined}
+        height={hasNewlines ? element.box.height : undefined}
+        draggable
+        fontFamily={element.style.fontFamily}
+        fontSize={element.style.fontSize}
+        fontStyle={`${element.style.fontStyle} ${element.style.fontWeight}`.trim()}
+        fill={element.style.fill}
+        align={element.style.textAlign}
+        verticalAlign="top"
+        lineHeight={element.style.lineHeight / element.style.fontSize}
+        letterSpacing={element.style.letterSpacing}
+        shadowColor={element.style.shadow?.color}
+        shadowBlur={element.style.shadow?.blur ?? 0}
+        shadowOffset={element.style.shadow?.offset ?? { x: 0, y: 0 }}
+        opacity={element.opacity}
+        rotation={element.rotation}
+        wrap="word"
+        ellipsis={false}
+        onDragStart={() => {
+          selectElements([element.id])
+        }}
+        onDragEnd={(evt) => {
+          const node = evt.target
+          moveElement(element.id, { x: node.x(), y: node.y() })
+        }}
+        onClick={() => selectElements([element.id])}
+        onTap={() => selectElements([element.id])}
+        listening
+      />
+    )
+  }
+  
+  const renderShapeElement = (element: ShapeElement) => {
+    if (element.shape === 'custom' && element.points && element.points.length > 0) {
+      // Convert points array to flat array for Konva Line
+      const points = element.points.flatMap((p) => [p.x, p.y])
+      
+      return (
+        <Line
+          key={element.id}
+          ref={(node) => handleElementRef(element.id, node)}
+          points={points}
+          x={element.position.x}
+          y={element.position.y}
+          closed={false}
+          draggable
+          stroke={element.stroke?.color ?? '#000000'}
+          strokeWidth={element.stroke?.width ?? 1}
+          opacity={element.opacity}
+          rotation={element.rotation}
+          scaleX={element.scale.x}
+          scaleY={element.scale.y}
+          onDragStart={() => {
+            selectElements([element.id])
+          }}
+          onDragEnd={(evt) => {
+            const node = evt.target
+            moveElement(element.id, { x: node.x(), y: node.y() })
+          }}
+          onClick={() => selectElements([element.id])}
+          onTap={() => selectElements([element.id])}
+          listening
+        />
+      )
+    }
+    
+    // Fallback for other shape types
+    return null
+  }
+  
+  // Image loading hook
+  const useImage = (src: string | undefined) => {
+    const [image, setImage] = useState<HTMLImageElement | null>(null)
+    
+    useEffect(() => {
+      if (!src) {
+        setImage(null)
+        return
+      }
+      
+      const img = new window.Image()
+      img.crossOrigin = 'anonymous'
+      img.src = src
+      img.onload = () => setImage(img)
+      img.onerror = () => {
+        // Fallback to placeholder
+        const placeholder = new window.Image()
+        placeholder.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkxvZ288L3RleHQ+PC9zdmc+'
+        placeholder.onload = () => setImage(placeholder)
+      }
+    }, [src])
+    
+    return image
+  }
+  
+  const ImageElementRenderer = ({ element }: { element: ImageElement }) => {
+    const image = useImage(element.assetId ? `/assets/${element.assetId}` : undefined)
+    
+    if (!image) return null
+    
+    return (
+      <KonvaImage
+        ref={(node) => handleElementRef(element.id, node)}
+        image={image}
+        x={element.position.x}
+        y={element.position.y}
+        width={element.box.width}
+        height={element.box.height}
+        draggable
+        opacity={element.opacity}
+        rotation={element.rotation}
+        scaleX={element.scale.x}
+        scaleY={element.scale.y}
+        onDragStart={() => {
+          selectElements([element.id])
+        }}
+        onDragEnd={(evt) => {
+          const node = evt.target
+          moveElement(element.id, { x: node.x(), y: node.y() })
+        }}
+        onClick={() => selectElements([element.id])}
+        onTap={() => selectElements([element.id])}
+        listening
+      />
+    )
+  }
+  
+  const renderImageElement = (element: ImageElement) => (
+    <ImageElementRenderer key={element.id} element={element} />
   )
+  
+  const renderElement = (element: EditorElement) => {
+    switch (element.kind) {
+      case 'text':
+        return renderTextElement(element)
+      case 'shape':
+        return renderShapeElement(element)
+      case 'image':
+        return renderImageElement(element)
+      default:
+        return null
+    }
+  }
 
   return (
     <Box
@@ -206,6 +329,8 @@ export const EditorCanvas = () => {
         overflow: 'hidden', 
         position: 'relative',
         cursor: 'grab',
+        width: '100%',
+        height: '100%',
         '&:active': {
           cursor: 'grabbing',
         },
@@ -216,10 +341,15 @@ export const EditorCanvas = () => {
         ref={(node) => {
           stageRef.current = node
         }}
-        width={canvasWidth}
-        height={canvasHeight}
-        x={ui.pan.x}
-        y={ui.pan.y}
+        width={containerSize.width || 800}
+        height={containerSize.height || 600}
+        x={ui.pan.x + stagePadding}
+        y={ui.pan.y + stagePadding}
+        style={{ 
+          position: 'absolute',
+          top: 0,
+          left: 0,
+        }}
         onMouseDown={(event) => {
           const stage = event.target.getStage()
           if (!stage) return
@@ -244,18 +374,21 @@ export const EditorCanvas = () => {
             width={page.size.width}
             height={page.size.height}
             fill={page.background?.color ?? '#ffffff'}
+            fillPatternImage={page.background?.pattern?.imageId ? undefined : undefined}
+            fillLinearGradientStartPoint={page.background?.gradient ? { x: 0, y: 0 } : undefined}
+            fillLinearGradientEndPoint={page.background?.gradient ? { x: page.size.width, y: page.size.height } : undefined}
+            fillLinearGradientColorStops={
+              page.background?.gradient
+                ? page.background.gradient.stops.flatMap((stop) => [stop.offset, stop.color])
+                : undefined
+            }
             shadowColor="rgba(15,23,42,0.16)"
             shadowBlur={24}
             shadowOpacity={0.8}
             cornerRadius={24}
           />
 
-          {layer.elements.map((element) => {
-            if (element.kind === 'text') {
-              return renderTextElement(element)
-            }
-            return null
-          })}
+          {layer.elements.map((element) => renderElement(element))}
 
           <Transformer
             ref={(node) => {
