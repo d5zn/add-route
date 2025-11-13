@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import {
   Box,
   Button,
@@ -18,23 +18,59 @@ import { api } from '../services/api'
 export const ClubDetailPage = () => {
   const { clubId } = useParams()
   const navigate = useNavigate()
+  const hasLoadedTemplatesRef = useRef<string | null>(null)
 
-  const club = useClubStore((store) => store.clubs.find((item) => item.id === clubId))
+  // Используем стабильные селекторы - подписываемся только на нужные части
   const createTemplate = useClubStore((store) => store.createTemplate)
-  const templates = useClubStore((store) => 
-    clubId ? store.templates.filter((t) => t.clubId === clubId) : store.templates
-  )
+  const selectedClubId = useClubStore((store) => store.selectedClubId)
+  
+  // Подписываемся на clubs, но мемоизируем результат поиска
+  const clubs = useClubStore((store) => store.clubs)
+  const club = useMemo(() => {
+    if (!clubId) return null
+    return clubs.find((item) => item.id === clubId) ?? null
+  }, [clubs, clubId]) // Зависим от clubs и clubId
+
+  // Подписываемся на templates, но мемоизируем фильтрацию
+  const allTemplates = useClubStore((store) => store.templates)
+  const templates = useMemo(() => {
+    if (!clubId) return allTemplates
+    return allTemplates.filter((t) => t.clubId === clubId)
+  }, [allTemplates, clubId]) // Зависим от allTemplates и clubId
+
+  // Мемоизируем theme
+  const theme = useMemo(() => {
+    if (!club) {
+      return {
+        primaryColor: '#222222',
+        secondaryColor: '#222222',
+        accentColor: '#222222',
+        backgroundColor: '#000000',
+      }
+    }
+    return {
+      primaryColor: club.theme?.primaryColor ?? '#222222',
+      secondaryColor: club.theme?.secondaryColor ?? '#222222',
+      accentColor: club.theme?.accentColor ?? '#222222',
+      backgroundColor: club.theme?.backgroundColor ?? '#000000',
+    }
+  }, [club])
 
   useEffect(() => {
     if (!clubId) return
     
-    // Выбираем клуб
-    useClubStore.getState().selectClub(clubId)
+    // Выбираем клуб только если изменился
+    if (selectedClubId !== clubId) {
+      useClubStore.getState().selectClub(clubId)
+    }
     
-    // Загружаем шаблоны для клуба, если их нет
+    // Загружаем шаблоны для клуба только один раз
+    if (hasLoadedTemplatesRef.current === clubId) return
+    
     const store = useClubStore.getState()
     const existingTemplates = store.templates.filter((t) => t.clubId === clubId)
     if (existingTemplates.length === 0) {
+      hasLoadedTemplatesRef.current = clubId
       api.getTemplates(clubId)
         .then((loadedTemplates) => {
           if (loadedTemplates.length > 0) {
@@ -45,9 +81,12 @@ export const ClubDetailPage = () => {
         })
         .catch(() => {
           // Игнорируем ошибки загрузки
+          hasLoadedTemplatesRef.current = null // Разрешаем повторную попытку
         })
+    } else {
+      hasLoadedTemplatesRef.current = clubId
     }
-  }, [clubId]) // Только clubId в зависимостях
+  }, [clubId, selectedClubId]) // Стабильные зависимости
 
   if (!club) {
     return (
@@ -63,19 +102,13 @@ export const ClubDetailPage = () => {
   }
 
   const handleCreateTemplate = () => {
+    if (!club) return
     const template = createTemplate({
       clubId: club.id,
       name: `${club.name} Новый дизайн`,
-      background: { color: club.theme?.backgroundColor ?? '#000000' },
+      background: { color: theme.backgroundColor },
     })
     navigate(`/clubs/${club.id}/templates/${template.id}`)
-  }
-
-  const theme = {
-    primaryColor: club.theme?.primaryColor ?? '#222222',
-    secondaryColor: club.theme?.secondaryColor ?? '#222222',
-    accentColor: club.theme?.accentColor ?? '#222222',
-    backgroundColor: club.theme?.backgroundColor ?? '#000000',
   }
 
   return (
