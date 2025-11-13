@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { Box } from '@mui/material'
 import { useEditorStore } from '../../store/useEditorStore'
 import type { Page, EditorElement, TextElement, ShapeElement, ImageElement } from '../../types'
@@ -181,11 +181,31 @@ export const NativeCanvasEditor = () => {
     return () => clearTimeout(timer)
   }, [])
 
-  // Re-render when elements change
-  const elements = page?.layers?.flatMap((layer) => layer.elements || []) || []
+  // Memoize layers info to prevent infinite loops
+  const layersInfo = useMemo(() => {
+    if (!page?.layers) return { ids: '', counts: '' }
+    return {
+      ids: page.layers.map(l => l.id).join(','),
+      counts: page.layers.map(l => l.elements?.length || 0).join(',')
+    }
+  }, [page?.id, page?.layers?.length])
+  
+  const layersKey = `${layersInfo.ids}:${layersInfo.counts}`
+  
+  const elements = useMemo(() => {
+    if (!page?.layers) return []
+    return page.layers.flatMap((layer) => layer.elements || [])
+  }, [layersKey])
+
+  // Create stable string of element IDs for comparison
+  const elementIdsString = useMemo(() => {
+    return elements.map(el => el.id).join(',')
+  }, [elements])
+
+  // Re-render when elements change (using element IDs for comparison)
   useEffect(() => {
     render()
-  }, [elements, render])
+  }, [elementIdsString, render])
 
   // Re-render when images load
   useEffect(() => {
@@ -210,7 +230,7 @@ export const NativeCanvasEditor = () => {
           })
         }
       })
-  }, [elements])
+  }, [elementIdsString])
 
   // Mouse handlers
   const getCanvasPoint = useCallback(

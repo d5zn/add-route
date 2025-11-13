@@ -24,12 +24,17 @@ export const EditorCanvas = () => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
 
+  // Create stable key for pages
+  const pagesKey = useMemo(() => {
+    return template.pages.map(p => p.id).join(',')
+  }, [template.pages.length, template.pages.map(p => p.id).join(',')])
+  
   const page = useMemo(() => {
     if (!template.pages.length) {
       return undefined
     }
     return template.pages.find((candidate) => candidate.id === pageId) ?? template.pages[0]
-  }, [template.pages, pageId])
+  }, [pagesKey, pageId])
 
   // Get the main layer (first non-overlay layer) for initialization
   const mainLayer = page?.layers.find((l) => l.name !== 'Overlay') ?? page?.layers[0]
@@ -69,7 +74,7 @@ export const EditorCanvas = () => {
     const scaleY = availableHeight / page.size.height
     const fitZoom = Math.min(scaleX, scaleY, 1) // Don't zoom in more than 100%
     
-    updateUi((ui) => {
+    useEditorStore.getState().updateUi((ui) => {
       ui.zoom = fitZoom
       // Center the canvas - pan should position the stage so canvas is centered
       const scaledWidth = page.size.width * fitZoom
@@ -79,7 +84,7 @@ export const EditorCanvas = () => {
         y: (containerSize.height - scaledHeight) / 2,
       }
     })
-  }, [page, containerSize, updateUi])
+  }, [page?.id, page?.size.width, page?.size.height, containerSize.width, containerSize.height])
   
   useEffect(() => {
     // Инициализируем только один раз для каждого layer

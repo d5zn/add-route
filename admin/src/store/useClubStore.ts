@@ -144,9 +144,11 @@ export const useClubStore = create<ClubStore>()(
 )
 
 export const useSelectedClub = () => {
-  const selectedClubId = useClubStore((store) => store.selectedClubId)
-  const clubs = useClubStore((store) => store.clubs)
-  return clubs.find((club) => club.id === selectedClubId) ?? null
+  return useClubStore((store) => {
+    const selectedClubId = store.selectedClubId
+    if (!selectedClubId) return null
+    return store.clubs.find((club) => club.id === selectedClubId) ?? null
+  })
 }
 
 export const useClubTemplates = (clubId?: string | null) => {

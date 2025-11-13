@@ -11,14 +11,11 @@ import { InspectorPanel } from '../components/inspector/InspectorPanel'
 
 export const TemplateEditorPage = () => {
   const { clubId, templateId } = useParams()
-  const selectClub = useClubStore((store) => store.selectClub)
   const selectedClubId = useClubStore((store) => store.selectedClubId)
   const template = useClubStore((store) =>
     store.templates.find((item) => item.id === templateId && item.clubId === clubId),
   )
   const editorTemplate = useEditorTemplate()
-  const setTemplate = useEditorStore((store) => store.setTemplate)
-  const upsertTemplate = useClubStore((store) => store.upsertTemplate)
   const lastTemplateIdRef = useRef<string | null>(null)
   const isSettingRef = useRef(false)
   const hasLoadedFromApiRef = useRef(false)
@@ -28,9 +25,8 @@ export const TemplateEditorPage = () => {
 
   useEffect(() => {
     if (clubId && clubId !== selectedClubId) {
-      selectClub(clubId)
+      useClubStore.getState().selectClub(clubId)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clubId, selectedClubId])
 
   // Загружаем шаблон из API при первой загрузке
@@ -41,13 +37,12 @@ export const TemplateEditorPage = () => {
     api.getTemplate(templateId)
       .then((apiTemplate) => {
         // Обновляем шаблон в store, если он был загружен из API
-        upsertTemplate(apiTemplate)
+        useClubStore.getState().upsertTemplate(apiTemplate)
       })
       .catch((error) => {
         console.warn('Failed to load template from API, using store template:', error)
         hasLoadedFromApiRef.current = false
       })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateId])
 
   useEffect(() => {
@@ -89,7 +84,7 @@ export const TemplateEditorPage = () => {
     
     isSettingRef.current = true
     const cloned = JSON.parse(JSON.stringify(template)) as typeof template
-    setTemplate(cloned)
+    useEditorStore.getState().setTemplate(cloned)
     lastTemplateIdRef.current = templateId
     
     // Сбрасываем флаг после небольшой задержки, чтобы избежать повторных вызовов
@@ -100,7 +95,6 @@ export const TemplateEditorPage = () => {
     return () => {
       clearTimeout(timeoutId)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateId, template?.id])
 
   if (!template) {

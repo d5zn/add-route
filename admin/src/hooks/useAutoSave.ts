@@ -1,26 +1,35 @@
 import { useEffect, useRef } from 'react'
 import { useClubStore } from '../store/useClubStore'
-import { useTemplate } from '../store/useEditorStore'
+import { useTemplate, useEditorStore } from '../store/useEditorStore'
 import { api } from '../services/api'
 
 export const useAutoSave = (intervalMs: number = 30000) => {
   const template = useTemplate()
-  const upsertTemplate = useClubStore((store) => store.upsertTemplate)
   const lastSavedRef = useRef<string | null>(null)
   const isSavingRef = useRef(false)
+  const intervalRef = useRef<number | null>(null)
 
   useEffect(() => {
-    if (!template || !template.id) return
-
-    const templateSnapshot = JSON.stringify(template)
-    
-    // Если шаблон не изменился с момента последнего сохранения, пропускаем
-    if (lastSavedRef.current === templateSnapshot || isSavingRef.current) {
+    if (!template || !template.id) {
+      // Очищаем интервал если шаблона нет
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
       return
     }
 
+    // Очищаем предыдущий интервал
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+    }
+
     const intervalId = setInterval(async () => {
-      const currentSnapshot = JSON.stringify(template)
+      // Получаем актуальный шаблон из store
+      const currentTemplate = useEditorStore.getState().state.template
+      if (!currentTemplate || !currentTemplate.id) return
+
+      const currentSnapshot = JSON.stringify(currentTemplate)
       
       // Проверяем еще раз перед сохранением
       if (lastSavedRef.current === currentSnapshot || isSavingRef.current) {
@@ -31,18 +40,18 @@ export const useAutoSave = (intervalMs: number = 30000) => {
       
       try {
         const updatedTemplate = {
-          ...template,
+          ...currentTemplate,
           updatedAt: new Date().toISOString(),
         }
         
         // Сначала обновляем локальный store
-        upsertTemplate(updatedTemplate)
+        useClubStore.getState().upsertTemplate(updatedTemplate)
         
         // Затем сохраняем на сервер
         await api.saveTemplate(updatedTemplate)
         
         lastSavedRef.current = currentSnapshot
-        console.log('Auto-saved template:', template.id)
+        console.log('Auto-saved template:', currentTemplate.id)
       } catch (error) {
         console.error('Auto-save failed:', error)
       } finally {
@@ -50,9 +59,14 @@ export const useAutoSave = (intervalMs: number = 30000) => {
       }
     }, intervalMs)
 
+    intervalRef.current = intervalId
+
     return () => {
-      clearInterval(intervalId)
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
     }
-  }, [template, upsertTemplate, intervalMs])
+  }, [template?.id, intervalMs]) // Зависим только от ID шаблона, а не от всего объекта
 }
 

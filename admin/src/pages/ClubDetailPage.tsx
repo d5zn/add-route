@@ -20,30 +20,31 @@ export const ClubDetailPage = () => {
   const navigate = useNavigate()
 
   const club = useClubStore((store) => store.clubs.find((item) => item.id === clubId))
-  const selectClub = useClubStore((store) => store.selectClub)
   const createTemplate = useClubStore((store) => store.createTemplate)
   const templates = useClubStore((store) => 
     clubId ? store.templates.filter((t) => t.clubId === clubId) : store.templates
   )
 
   useEffect(() => {
-    if (clubId) {
-      selectClub(clubId)
-      
-      // Загружаем шаблоны для клуба, если их нет
-      const existingTemplates = useClubStore.getState().templates.filter((t) => t.clubId === clubId)
-      if (existingTemplates.length === 0) {
-        api.getTemplates(clubId)
-          .then((loadedTemplates) => {
-            if (loadedTemplates.length > 0) {
-              const otherTemplates = useClubStore.getState().templates.filter((t) => t.clubId !== clubId)
-              useClubStore.getState().setTemplates([...otherTemplates, ...loadedTemplates])
-            }
-          })
-          .catch(console.error)
-      }
+    if (!clubId) return
+    
+    // Выбираем клуб
+    useClubStore.getState().selectClub(clubId)
+    
+    // Загружаем шаблоны для клуба, если их нет
+    const existingTemplates = useClubStore.getState().templates.filter((t) => t.clubId === clubId)
+    if (existingTemplates.length === 0) {
+      api.getTemplates(clubId)
+        .then((loadedTemplates) => {
+          if (loadedTemplates.length > 0) {
+            const currentTemplates = useClubStore.getState().templates
+            const otherTemplates = currentTemplates.filter((t) => t.clubId !== clubId)
+            useClubStore.getState().setTemplates([...otherTemplates, ...loadedTemplates])
+          }
+        })
+        .catch(console.error)
     }
-  }, [clubId, selectClub])
+  }, [clubId])
 
   if (!club) {
     return (
