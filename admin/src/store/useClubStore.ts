@@ -281,8 +281,9 @@ export const useClubStore = create<ClubStore>()(
               // If API returned empty array, keep existing templates
             }
             
-            // Only update summaries if templates changed
-            if (templatesChanged) {
+            // Only update summaries if templates changed and we're loading all templates
+            // Don't update summaries when loading templates for a specific club to avoid infinite loops
+            if (templatesChanged && !clubId) {
               // Update summaries with new counts
               draft.summaries.forEach((summary) => {
                 const newCount = draft.templates.filter(
@@ -293,6 +294,17 @@ export const useClubStore = create<ClubStore>()(
                   summary.templatesCount = newCount
                 }
               })
+            } else if (templatesChanged && clubId) {
+              // Only update the specific club's summary count
+              const summary = draft.summaries.find((s) => s.id === clubId)
+              if (summary) {
+                const newCount = draft.templates.filter(
+                  (template: Template) => template.clubId === clubId,
+                ).length
+                if (summary.templatesCount !== newCount) {
+                  summary.templatesCount = newCount
+                }
+              }
             }
             
             draft.isLoading = false
@@ -323,15 +335,28 @@ export const useClubStore = create<ClubStore>()(
               // Otherwise, keep existing templates
             }
             
-            // Update summaries with correct counts (only if changed)
-            draft.summaries.forEach((summary) => {
-              const newCount = draft.templates.filter(
-                (template: Template) => template.clubId === summary.id,
-              ).length
-              if (summary.templatesCount !== newCount) {
-                summary.templatesCount = newCount
+            // Update summaries with correct counts (only if changed and only for affected club)
+            if (clubId) {
+              const summary = draft.summaries.find((s) => s.id === clubId)
+              if (summary) {
+                const newCount = draft.templates.filter(
+                  (template: Template) => template.clubId === clubId,
+                ).length
+                if (summary.templatesCount !== newCount) {
+                  summary.templatesCount = newCount
+                }
               }
-            })
+            } else {
+              // Only update all summaries if loading all templates
+              draft.summaries.forEach((summary) => {
+                const newCount = draft.templates.filter(
+                  (template: Template) => template.clubId === summary.id,
+                ).length
+                if (summary.templatesCount !== newCount) {
+                  summary.templatesCount = newCount
+                }
+              })
+            }
             draft.isLoading = false
           }, false, 'loadTemplates:error')
         }

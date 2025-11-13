@@ -37,18 +37,24 @@ export const ClubOverviewPage = () => {
   )
   const selectClub = useClubStore((store) => store.selectClub)
   const createClub = useClubStore((store) => store.createClub)
-  const loadClubs = useClubStore((store) => store.loadClubs)
-  const loadTemplates = useClubStore((store) => store.loadTemplates)
+  const isLoading = useClubStore((store) => store.isLoading)
   const navigate = useNavigate()
 
   const hasLoadedRef = useRef(false)
+  const loadingRef = useRef(false)
 
   useEffect(() => {
-    // Load only once on mount
-    if (!hasLoadedRef.current) {
+    // Load only once on mount, and only if not already loading
+    if (!hasLoadedRef.current && !loadingRef.current && !isLoading) {
       hasLoadedRef.current = true
-      loadClubs().catch(console.error)
-      loadTemplates().catch(console.error)
+      loadingRef.current = true
+      const loadClubs = useClubStore.getState().loadClubs
+      const loadTemplates = useClubStore.getState().loadTemplates
+      Promise.all([loadClubs(), loadTemplates()])
+        .catch(console.error)
+        .finally(() => {
+          loadingRef.current = false
+        })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
