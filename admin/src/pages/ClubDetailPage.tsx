@@ -32,7 +32,8 @@ export const ClubDetailPage = () => {
     useClubStore.getState().selectClub(clubId)
     
     // Загружаем шаблоны для клуба, если их нет
-    const existingTemplates = useClubStore.getState().templates.filter((t) => t.clubId === clubId)
+    const store = useClubStore.getState()
+    const existingTemplates = store.templates.filter((t) => t.clubId === clubId)
     if (existingTemplates.length === 0) {
       api.getTemplates(clubId)
         .then((loadedTemplates) => {
@@ -42,9 +43,11 @@ export const ClubDetailPage = () => {
             useClubStore.getState().setTemplates([...otherTemplates, ...loadedTemplates])
           }
         })
-        .catch(console.error)
+        .catch(() => {
+          // Игнорируем ошибки загрузки
+        })
     }
-  }, [clubId])
+  }, [clubId]) // Только clubId в зависимостях
 
   if (!club) {
     return (

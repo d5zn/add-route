@@ -27,7 +27,7 @@ export const TemplateEditorPage = () => {
     if (clubId && clubId !== selectedClubId) {
       useClubStore.getState().selectClub(clubId)
     }
-  }, [clubId, selectedClubId])
+  }, [clubId, selectedClubId]) // Стабильные зависимости
 
   // Загружаем шаблон из API при первой загрузке
   useEffect(() => {
@@ -39,11 +39,11 @@ export const TemplateEditorPage = () => {
         // Обновляем шаблон в store, если он был загружен из API
         useClubStore.getState().upsertTemplate(apiTemplate)
       })
-      .catch((error) => {
-        console.warn('Failed to load template from API, using store template:', error)
+      .catch(() => {
+        // Игнорируем ошибки, используем шаблон из store
         hasLoadedFromApiRef.current = false
       })
-  }, [templateId])
+  }, [templateId]) // Только templateId
 
   useEffect(() => {
     // Используем только templateId из URL для отслеживания изменений
@@ -70,7 +70,6 @@ export const TemplateEditorPage = () => {
     }
     
     // Если шаблон уже установлен в редакторе, не устанавливаем снова
-    // Проверяем editorTemplateId внутри эффекта, но не добавляем в зависимости
     const currentEditorTemplateId = editorTemplate?.id
     if (currentEditorTemplateId && currentEditorTemplateId === templateId) {
       lastTemplateIdRef.current = templateId
@@ -78,16 +77,12 @@ export const TemplateEditorPage = () => {
       return
     }
     
-    if (import.meta.env.DEV) {
-      console.count('TemplateEditorPage setTemplate effect')
-    }
-    
     isSettingRef.current = true
     const cloned = JSON.parse(JSON.stringify(template)) as typeof template
     useEditorStore.getState().setTemplate(cloned)
     lastTemplateIdRef.current = templateId
     
-    // Сбрасываем флаг после небольшой задержки, чтобы избежать повторных вызовов
+    // Сбрасываем флаг после небольшой задержки
     const timeoutId = setTimeout(() => {
       isSettingRef.current = false
     }, 100)
@@ -95,7 +90,7 @@ export const TemplateEditorPage = () => {
     return () => {
       clearTimeout(timeoutId)
     }
-  }, [templateId, template?.id])
+  }, [templateId, template?.id, editorTemplate?.id]) // Стабильные зависимости
 
   if (!template) {
     return (
