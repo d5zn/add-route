@@ -76,6 +76,19 @@ export type MapStyle = {
   center: [number, number]
   bearing?: number
   pitch?: number
+  pathStyle?: {
+    fill: 'solid' | 'gradient' | 'hard-transition'
+    color?: string
+    gradient?: {
+      stops: Array<{ offset: number; color: string }>
+    }
+    hardTransition?: {
+      colors: string[]
+      segmentLength: number
+    }
+    texture?: string // assetId для текстуры
+    width: number
+  }
   overlays?: Array<{
     id: string
     type: 'marker' | 'path' | 'polygon'
@@ -145,6 +158,7 @@ export type ShapeElement = BaseElement & {
   cornerRadius?: number | [number, number, number, number]
   stroke: StrokeStyle | null
   fill: FillStyle | null
+  blendMode?: 'normal' | 'multiply' | 'screen' | 'overlay' | 'darken' | 'lighten' | 'color-dodge' | 'color-burn' | 'hard-light' | 'soft-light' | 'difference' | 'exclusion'
 }
 
 export type MapElement = BaseElement & {
