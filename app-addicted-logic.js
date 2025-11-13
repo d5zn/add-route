@@ -16,7 +16,7 @@ class SznApp {
             { id: 'not-in-paris', name: 'NOT IN PARIS' },
             { id: 'hedonism', name: 'HEDONISM' }
         ];
-        this.templatesByClub = this.getTemplateDefinitions();
+        this.templatesByClub = {}; // Будет загружено асинхронно
         try {
             this.currentTemplate = localStorage.getItem('selected_template');
         } catch (e) {
@@ -37,9 +37,16 @@ class SznApp {
             this.store.setTemplate?.(this.currentTemplate);
         }
         
-        this.ensureTemplateConsistency();
-        
-        this.init();
+        // Загружаем шаблоны асинхронно
+        this.loadTemplates().then(() => {
+            this.ensureTemplateConsistency();
+            this.init();
+        }).catch(() => {
+            // Fallback если загрузка не удалась
+            this.templatesByClub = this.getTemplateDefinitions();
+            this.ensureTemplateConsistency();
+            this.init();
+        });
     }
     
     getOrCreateSessionId() {
@@ -65,7 +72,34 @@ class SznApp {
         return null;
     }
 
+    async loadTemplates() {
+        // Try to load templates from API, fallback to hardcoded
+        const clubId = this.currentClub || 'not-in-paris';
+        
+        try {
+            const response = await fetch(`/api/templates?clubId=${encodeURIComponent(clubId)}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.templates && data.templates.length > 0) {
+                    // Convert API templates to format expected by app
+                    this.templatesByClub[clubId] = data.templates;
+                    console.log(`✅ Loaded ${data.templates.length} templates from API for club: ${clubId}`);
+                    return;
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to load templates from API, using fallback:', error);
+        }
+        
+        // Fallback to hardcoded templates
+        const fallback = this.getTemplateDefinitions();
+        if (!this.templatesByClub[clubId]) {
+            this.templatesByClub[clubId] = fallback[clubId] || [];
+        }
+    }
+
     getTemplateDefinitions() {
+        // Hardcoded fallback templates
         return {
             'not-in-paris': [
                 {
@@ -1559,7 +1593,7 @@ class SznApp {
         }
     }
 
-    selectClub(clubId) {
+    async selectClub(clubId) {
         console.log('🏢 Selecting club:', clubId);
         this.currentClub = clubId;
         localStorage.setItem('selected_club', clubId);
@@ -1578,6 +1612,9 @@ class SznApp {
             this.store.setClub(clubId);
         }
 
+        // Загружаем шаблоны для нового клуба
+        await this.loadTemplates();
+        
         this.ensureTemplateConsistency();
         this.renderTemplateOptions();
         if (this.currentTemplate) {

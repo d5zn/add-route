@@ -1151,6 +1151,14 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             return
         
         # OAuth token exchange (works for both root and /route/)
+        # Public API endpoints for main application
+        parsed_path = urlparse(self.path)
+        path_without_query = parsed_path.path
+        
+        if path_without_query == '/api/templates' or path_without_query == '/route/api/templates':
+            self.handle_public_templates()
+            return
+        
         if self.path == '/api/strava/token' or self.path == '/route/api/strava/token':
             self.handle_token_exchange()
         # Analytics API endpoints
@@ -1696,6 +1704,108 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({'error': 'Internal server error'}).encode())
+    
+    def handle_public_templates(self):
+        """Handle public templates API endpoint for main application"""
+        try:
+            query_params = parse_qs(urlparse(self.path).query)
+            club_id = query_params.get('clubId', [None])[0]
+            
+            if not club_id:
+                # Return empty if no clubId provided
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'templates': []}).encode())
+                return
+            
+            conn = get_db_connection()
+            if conn:
+                try:
+                    cursor = conn.cursor(cursor_factory=RealDictCursor)
+                    cursor.execute("""
+                        SELECT id, club_id, name, description, tags, 
+                               created_at, updated_at, version, status, pages
+                        FROM templates 
+                        WHERE club_id = %s AND status = 'published'
+                        ORDER BY updated_at DESC
+                    """, (club_id,))
+                    
+                    templates = cursor.fetchall()
+                    
+                    # Convert to simplified format for main application
+                    formatted_templates = []
+                    for template in templates:
+                        # Extract config from pages if available
+                        config = {
+                            'backgroundMode': 'image',
+                            'fontColor': 'white',
+                            'isMono': False
+                        }
+                        
+                        pages_data = template.get('pages')
+                        if pages_data:
+                            if isinstance(pages_data, str):
+                                try:
+                                    pages_data = json.loads(pages_data)
+                                except:
+                                    pages_data = []
+                            
+                            if pages_data and len(pages_data) > 0:
+                                page = pages_data[0]
+                                # Extract background mode from page background
+                                if page.get('background'):
+                                    bg = page['background']
+                                    if bg.get('gradient'):
+                                        config['backgroundMode'] = 'gradient'
+                                    elif bg.get('color'):
+                                        if bg['color'] == '#000000' or bg['color'] == '#ffffff':
+                                            config['backgroundMode'] = 'solid'
+                                        else:
+                                            config['backgroundMode'] = 'image'
+                                
+                                # Extract font color from first text element
+                                if page.get('layers'):
+                                    for layer in page['layers']:
+                                        if layer.get('elements'):
+                                            for element in layer['elements']:
+                                                if element.get('kind') == 'text' and element.get('style'):
+                                                    config['fontColor'] = element['style'].get('fill', 'white')
+                                                    break
+                        
+                        formatted_template = {
+                            'id': template.get('id'),
+                            'name': template.get('name'),
+                            'badge': 'Published',
+                            'description': template.get('description') or '',
+                            'config': config
+                        }
+                        formatted_templates.append(formatted_template)
+                    
+                    conn.close()
+                    
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'templates': formatted_templates}, default=str).encode())
+                    return
+                except Exception as e:
+                    print(f"⚠️ Error querying templates from database: {e}")
+                    if conn:
+                        conn.close()
+            
+            # Fallback: return empty array
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'templates': []}).encode())
+            
+        except Exception as e:
+            print(f"❌ Error in public templates endpoint: {e}")
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Internal server error', 'templates': []}).encode())
     
     def handle_admin_templates(self):
         """Handle admin templates API endpoint"""
