@@ -1,11 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import { api } from '../services/api.ts'
 import { useClubStore } from '../store/useClubStore.ts'
 import { mockClubs, mockTemplates } from '../data/mockClubs.ts'
 
 export const useInitializeData = () => {
-  const queryClient = useQueryClient()
   const hasInitializedRef = useRef(false)
 
   useEffect(() => {
@@ -24,10 +22,6 @@ export const useInitializeData = () => {
         const templates = await api.getTemplates()
         const templatesToUse = templates.length > 0 ? templates : mockTemplates
         useClubStore.getState().setTemplates(templatesToUse)
-
-        // Кешируем в React Query для будущего использования
-        queryClient.setQueryData(['clubs'], clubsToUse)
-        queryClient.setQueryData(['templates'], templatesToUse)
       } catch (error) {
         console.error('Failed to initialize data:', error)
         // Fallback to mock data
@@ -37,6 +31,6 @@ export const useInitializeData = () => {
     }
 
     initialize()
-  }, [queryClient])
+  }, [])
 }
 
