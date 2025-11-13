@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { AppBar, Box, Button, IconButton, Stack, Toolbar, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded'
 import UndoRoundedIcon from '@mui/icons-material/UndoRounded'
@@ -5,8 +6,9 @@ import RedoRoundedIcon from '@mui/icons-material/RedoRounded'
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded'
 import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded'
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
-import { useSelectedClub } from '../../store/useClubStore'
+import { useSelectedClub, useClubStore } from '../../store/useClubStore'
 import { useTemplate, useEditorUi, useEditorActions } from '../../store/useEditorStore'
+import { api } from '../../services/api'
 
 export const Topbar = () => {
   const location = useLocation()
@@ -15,13 +17,39 @@ export const Topbar = () => {
   const template = useTemplate()
   const ui = useEditorUi()
   const { updateUi } = useEditorActions()
+  const upsertTemplate = useClubStore((store) => store.upsertTemplate)
   const isEditorRoute = /\/templates\//.test(location.pathname)
+  const [isSaving, setIsSaving] = useState(false)
 
   const handleAspectRatioChange = (_event: React.MouseEvent<HTMLElement>, newRatio: string | null) => {
     if (newRatio) {
       updateUi((ui) => {
         ui.aspectRatio = newRatio as '9:16' | '4:5'
       })
+    }
+  }
+
+  const handleSave = async () => {
+    if (!template || isSaving) return
+    
+    setIsSaving(true)
+    try {
+      // Обновляем шаблон в локальном store
+      const updatedTemplate = {
+        ...template,
+        updatedAt: new Date().toISOString(),
+      }
+      upsertTemplate(updatedTemplate)
+      
+      // Сохраняем на сервер
+      await api.saveTemplate(updatedTemplate)
+      
+      console.log('Template saved successfully')
+    } catch (error) {
+      console.error('Failed to save template:', error)
+      alert('Ошибка при сохранении шаблона')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -126,8 +154,13 @@ export const Topbar = () => {
             <RedoRoundedIcon />
           </IconButton>
           <Box ml={2} display="flex" gap={1}>
-            <Button variant="outlined" startIcon={<SaveRoundedIcon />} disabled>
-              Сохранить
+            <Button 
+              variant="outlined" 
+              startIcon={<SaveRoundedIcon />} 
+              disabled={!isEditorRoute || !template || isSaving}
+              onClick={handleSave}
+            >
+              {isSaving ? 'Сохранение...' : 'Сохранить'}
             </Button>
             {isEditorRoute && template ? (
               <Button

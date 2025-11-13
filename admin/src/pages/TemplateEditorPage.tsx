@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom'
 import { useClubStore } from '../store/useClubStore'
 import { useEditorStore, useTemplate as useEditorTemplate } from '../store/useEditorStore'
 import { api } from '../services/api.ts'
+import { useAutoSave } from '../hooks/useAutoSave'
 import { ElementListPanel } from '../components/sidebar/ElementListPanel'
 import { NativeCanvasEditor } from '../components/canvas/NativeCanvasEditor'
 import { InspectorPanel } from '../components/inspector/InspectorPanel'
@@ -21,6 +22,9 @@ export const TemplateEditorPage = () => {
   const lastTemplateIdRef = useRef<string | null>(null)
   const isSettingRef = useRef(false)
   const hasLoadedFromApiRef = useRef(false)
+
+  // Автосохранение каждые 30 секунд
+  useAutoSave(30000)
 
   useEffect(() => {
     if (clubId && clubId !== selectedClubId) {

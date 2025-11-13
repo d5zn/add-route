@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import {
   Box,
   Button,
@@ -12,7 +12,9 @@ import {
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import LaunchRoundedIcon from '@mui/icons-material/LaunchRounded'
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom'
-import { useClubStore, useClubTemplates } from '../store/useClubStore'
+import { useClubStore } from '../store/useClubStore'
+import { useTemplates } from '../hooks/useTemplates'
+import { useTemplatesData } from '../hooks/useTemplates'
 
 export const ClubDetailPage = () => {
   const { clubId } = useParams()
@@ -20,26 +22,17 @@ export const ClubDetailPage = () => {
 
   const club = useClubStore((store) => store.clubs.find((item) => item.id === clubId))
   const selectClub = useClubStore((store) => store.selectClub)
-  const selectedClubId = useClubStore((store) => store.selectedClubId)
   const createTemplate = useClubStore((store) => store.createTemplate)
-  const loadTemplates = useClubStore((store) => store.loadTemplates)
-  const templates = useClubTemplates(clubId)
-  const hasLoadedTemplatesRef = useRef<string | null>(null)
-  const hasSelectedClubRef = useRef<string | null>(null)
+  
+  // Load templates for this club using React Query
+  useTemplates(clubId)
+  const templates = useTemplatesData(clubId)
 
   useEffect(() => {
-    if (clubId && hasLoadedTemplatesRef.current !== clubId) {
-      hasLoadedTemplatesRef.current = clubId
-      loadTemplates(clubId).catch(console.error)
-    }
-  }, [clubId, loadTemplates])
-
-  useEffect(() => {
-    if (clubId && clubId !== selectedClubId && hasSelectedClubRef.current !== clubId) {
-      hasSelectedClubRef.current = clubId
+    if (clubId) {
       selectClub(clubId)
     }
-  }, [clubId, selectedClubId, selectClub])
+  }, [clubId, selectClub])
 
   if (!club) {
     return (

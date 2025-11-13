@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import {
   Box,
@@ -18,7 +18,8 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useClubStore } from '../store/useClubStore'
-import { useShallow } from 'zustand/react/shallow'
+import { useClubs } from '../hooks/useClubs'
+import { useTemplates } from '../hooks/useTemplates'
 import type { ClubTheme } from '../types/index.ts'
 
 const DEFAULT_THEME: ClubTheme = {
@@ -32,32 +33,27 @@ const DEFAULT_THEME: ClubTheme = {
 const fonts = ['Inter', 'Roboto', 'Montserrat', 'Playfair Display', 'Unbounded']
 
 export const ClubOverviewPage = () => {
-  const summaries = useClubStore(
-    useShallow((store) => store.summaries)
-  )
+  const clubs = useClubStore((store) => store.clubs)
+  const templates = useClubStore((store) => store.templates)
   const selectClub = useClubStore((store) => store.selectClub)
   const createClub = useClubStore((store) => store.createClub)
-  const isLoading = useClubStore((store) => store.isLoading)
   const navigate = useNavigate()
 
-  const hasLoadedRef = useRef(false)
-  const loadingRef = useRef(false)
+  // Load clubs and templates using React Query
+  useClubs()
+  useTemplates()
 
-  useEffect(() => {
-    // Load only once on mount, and only if not already loading
-    if (!hasLoadedRef.current && !loadingRef.current && !isLoading) {
-      hasLoadedRef.current = true
-      loadingRef.current = true
-      const loadClubs = useClubStore.getState().loadClubs
-      const loadTemplates = useClubStore.getState().loadTemplates
-      Promise.all([loadClubs(), loadTemplates()])
-        .catch(console.error)
-        .finally(() => {
-          loadingRef.current = false
-        })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Compute summaries from clubs and templates
+  const summaries = useMemo(() => {
+    return clubs.map((club) => ({
+      id: club.id,
+      name: club.name,
+      slug: club.slug,
+      theme: club.theme,
+      status: club.status,
+      templatesCount: templates.filter((t) => t.clubId === club.id).length,
+    }))
+  }, [clubs, templates])
 
   const [isDialogOpen, setDialogOpen] = useState(false)
   const [name, setName] = useState('')
