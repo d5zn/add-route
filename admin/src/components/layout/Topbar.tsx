@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { AppBar, Box, Button, IconButton, Stack, Toolbar, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded'
 import UndoRoundedIcon from '@mui/icons-material/UndoRounded'
@@ -6,24 +6,28 @@ import RedoRoundedIcon from '@mui/icons-material/RedoRounded'
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded'
 import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded'
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
-import { useSelectedClub, useClubStore } from '../../store/useClubStore'
-import { useTemplate, useEditorUi, useEditorActions } from '../../store/useEditorStore'
+import { useClubStore } from '../../store/useClubStore'
+import { useTemplate, useEditorUi, useEditorStore } from '../../store/useEditorStore'
 import { api } from '../../services/api'
 
 export const Topbar = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const club = useSelectedClub()
+  // Используем простые селекторы без сложных вычислений
+  const selectedClubId = useClubStore((store) => store.selectedClubId)
+  const club = useMemo(() => {
+    if (!selectedClubId) return null
+    const clubs = useClubStore.getState().clubs
+    return clubs.find((c) => c.id === selectedClubId) ?? null
+  }, [selectedClubId])
   const template = useTemplate()
   const ui = useEditorUi()
-  const { updateUi } = useEditorActions()
-  const upsertTemplate = useClubStore((store) => store.upsertTemplate)
   const isEditorRoute = /\/templates\//.test(location.pathname)
   const [isSaving, setIsSaving] = useState(false)
 
   const handleAspectRatioChange = (_event: React.MouseEvent<HTMLElement>, newRatio: string | null) => {
     if (newRatio) {
-      updateUi((ui) => {
+      useEditorStore.getState().updateUi((ui) => {
         ui.aspectRatio = newRatio as '9:16' | '4:5'
       })
     }
@@ -39,7 +43,7 @@ export const Topbar = () => {
         ...template,
         updatedAt: new Date().toISOString(),
       }
-      upsertTemplate(updatedTemplate)
+      useClubStore.getState().upsertTemplate(updatedTemplate)
       
       // Сохраняем на сервер
       await api.saveTemplate(updatedTemplate)

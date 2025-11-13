@@ -152,15 +152,4 @@ export const useTemplate = () => useEditorStore((store) => store.state.template)
 export const useEditorSelection = () =>
   useEditorStore((store) => store.state.selectedElementIds)
 export const useEditorUi = () => useEditorStore((store) => store.state.ui)
-export const useEditorActions = () =>
-  useEditorStore((store) => ({
-    setTemplate: store.setTemplate,
-    selectPage: store.selectPage,
-    selectElements: store.selectElements,
-    updateElement: store.updateElement,
-    addElement: store.addElement,
-    moveElement: store.moveElement,
-    duplicateSelection: store.duplicateSelection,
-    deleteSelection: store.deleteSelection,
-    updateUi: store.updateUi,
-  }))
+// Убрали useEditorActions - используем getState() напрямую
