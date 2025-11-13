@@ -39,12 +39,15 @@ export const ClubOverviewPage = () => {
   const createClub = useClubStore((store) => store.createClub)
   const navigate = useNavigate()
 
-  // Load clubs and templates using React Query
-  useClubs()
-  useTemplates()
+  // Load clubs and templates using React Query (только один раз)
+  const { isSuccess: clubsLoaded } = useClubs()
+  const { isSuccess: templatesLoaded } = useTemplates()
 
   // Compute summaries from clubs and templates
   const summaries = useMemo(() => {
+    if (!clubsLoaded || !templatesLoaded) {
+      return []
+    }
     return clubs.map((club) => ({
       id: club.id,
       name: club.name,
@@ -53,7 +56,7 @@ export const ClubOverviewPage = () => {
       status: club.status,
       templatesCount: templates.filter((t) => t.clubId === club.id).length,
     }))
-  }, [clubs, templates])
+  }, [clubs, templates, clubsLoaded, templatesLoaded])
 
   const [isDialogOpen, setDialogOpen] = useState(false)
   const [name, setName] = useState('')
