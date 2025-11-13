@@ -18,8 +18,6 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useClubStore } from '../store/useClubStore'
-import { useClubs } from '../hooks/useClubs'
-import { useTemplates } from '../hooks/useTemplates'
 import type { ClubTheme } from '../types/index.ts'
 
 const DEFAULT_THEME: ClubTheme = {
@@ -39,15 +37,8 @@ export const ClubOverviewPage = () => {
   const createClub = useClubStore((store) => store.createClub)
   const navigate = useNavigate()
 
-  // Load clubs and templates using React Query (только один раз)
-  const { isSuccess: clubsLoaded } = useClubs()
-  const { isSuccess: templatesLoaded } = useTemplates()
-
   // Compute summaries from clubs and templates
   const summaries = useMemo(() => {
-    if (!clubsLoaded || !templatesLoaded) {
-      return []
-    }
     return clubs.map((club) => ({
       id: club.id,
       name: club.name,
@@ -56,7 +47,7 @@ export const ClubOverviewPage = () => {
       status: club.status,
       templatesCount: templates.filter((t) => t.clubId === club.id).length,
     }))
-  }, [clubs, templates, clubsLoaded, templatesLoaded])
+  }, [clubs, templates])
 
   const [isDialogOpen, setDialogOpen] = useState(false)
   const [name, setName] = useState('')

@@ -13,8 +13,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import LaunchRoundedIcon from '@mui/icons-material/LaunchRounded'
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom'
 import { useClubStore } from '../store/useClubStore'
-import { useTemplates } from '../hooks/useTemplates'
-import { useTemplatesData } from '../hooks/useTemplates'
+import { api } from '../services/api'
 
 export const ClubDetailPage = () => {
   const { clubId } = useParams()
@@ -23,14 +22,26 @@ export const ClubDetailPage = () => {
   const club = useClubStore((store) => store.clubs.find((item) => item.id === clubId))
   const selectClub = useClubStore((store) => store.selectClub)
   const createTemplate = useClubStore((store) => store.createTemplate)
-  
-  // Load templates for this club using React Query
-  useTemplates(clubId)
-  const templates = useTemplatesData(clubId)
+  const templates = useClubStore((store) => 
+    clubId ? store.templates.filter((t) => t.clubId === clubId) : store.templates
+  )
 
   useEffect(() => {
     if (clubId) {
       selectClub(clubId)
+      
+      // Загружаем шаблоны для клуба, если их нет
+      const existingTemplates = useClubStore.getState().templates.filter((t) => t.clubId === clubId)
+      if (existingTemplates.length === 0) {
+        api.getTemplates(clubId)
+          .then((loadedTemplates) => {
+            if (loadedTemplates.length > 0) {
+              const otherTemplates = useClubStore.getState().templates.filter((t) => t.clubId !== clubId)
+              useClubStore.getState().setTemplates([...otherTemplates, ...loadedTemplates])
+            }
+          })
+          .catch(console.error)
+      }
     }
   }, [clubId, selectClub])
 
