@@ -18,6 +18,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useClubStore } from '../store/useClubStore'
+import { useShallow } from 'zustand/react/shallow'
 import type { ClubTheme } from '../types/index.ts'
 
 const DEFAULT_THEME: ClubTheme = {
@@ -31,14 +32,16 @@ const DEFAULT_THEME: ClubTheme = {
 const fonts = ['Inter', 'Roboto', 'Montserrat', 'Playfair Display', 'Unbounded']
 
 export const ClubOverviewPage = () => {
-  const clubs = useClubStore((store) => store.clubs)
-  const templates = useClubStore((store) => store.templates)
+  // Используем shallow для массивов, чтобы предотвратить лишние перерендеры
+  const clubs = useClubStore(useShallow((store) => store.clubs))
+  const templates = useClubStore(useShallow((store) => store.templates))
   const selectClub = useClubStore((store) => store.selectClub)
   const createClub = useClubStore((store) => store.createClub)
   const navigate = useNavigate()
 
   // Compute summaries from clubs and templates
   const summaries = useMemo(() => {
+    if (!clubs.length) return []
     return clubs.map((club) => ({
       id: club.id,
       name: club.name,

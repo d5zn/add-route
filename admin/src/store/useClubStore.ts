@@ -45,12 +45,32 @@ export const useClubStore = create<ClubStore>()(
       },
       setClubs: (clubs) => {
         set((draft) => {
-          draft.clubs = clubs
+          // Обновляем только если данные действительно изменились
+          const currentIds = new Set(draft.clubs.map(c => c.id))
+          const newIds = new Set(clubs.map(c => c.id))
+          const changed = 
+            currentIds.size !== newIds.size ||
+            ![...currentIds].every(id => newIds.has(id)) ||
+            ![...newIds].every(id => currentIds.has(id))
+          
+          if (changed) {
+            draft.clubs = clubs
+          }
         }, false, 'setClubs')
       },
       setTemplates: (templates) => {
         set((draft) => {
-          draft.templates = templates
+          // Обновляем только если данные действительно изменились
+          const currentIds = new Set(draft.templates.map(t => t.id))
+          const newIds = new Set(templates.map(t => t.id))
+          const changed = 
+            currentIds.size !== newIds.size ||
+            ![...currentIds].every(id => newIds.has(id)) ||
+            ![...newIds].every(id => currentIds.has(id))
+          
+          if (changed) {
+            draft.templates = templates
+          }
         }, false, 'setTemplates')
       },
       createClub: (payload) => {
