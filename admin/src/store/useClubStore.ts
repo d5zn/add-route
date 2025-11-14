@@ -28,6 +28,7 @@ type ClubStoreActions = {
   upsertTemplate(template: Template): void
   duplicateTemplate(templateId: string): Template | null
   archiveTemplate(templateId: string): void
+  deleteTemplate(templateId: string): void
 }
 
 type ClubStore = ClubStoreState & ClubStoreActions
@@ -138,6 +139,11 @@ export const useClubStore = create<ClubStore>()(
           template.status = 'archived'
           template.updatedAt = new Date().toISOString()
         }, false, 'archiveTemplate')
+      },
+      deleteTemplate: (templateId) => {
+        set((draft) => {
+          draft.templates = draft.templates.filter((item) => item.id !== templateId)
+        }, false, 'deleteTemplate')
       },
     })),
   ),

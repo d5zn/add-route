@@ -55,5 +55,11 @@ export const api = {
       body: JSON.stringify(template),
     })
   },
+
+  async deleteTemplate(templateId: string): Promise<void> {
+    await fetchWithAuth(`${API_BASE}/templates/${templateId}`, {
+      method: 'DELETE',
+    })
+  },
 }
 

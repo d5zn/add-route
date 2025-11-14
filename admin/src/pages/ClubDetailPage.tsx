@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Box,
   Button,
@@ -6,11 +6,14 @@ import {
   CardActions,
   CardContent,
   Chip,
+  IconButton,
   Stack,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import LaunchRoundedIcon from '@mui/icons-material/LaunchRounded'
+import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded'
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom'
 import { useClubStore } from '../store/useClubStore'
 import { api } from '../services/api'
@@ -22,7 +25,9 @@ export const ClubDetailPage = () => {
 
   // Используем стабильные селекторы - подписываемся только на нужные части
   const createTemplate = useClubStore((store) => store.createTemplate)
+  const deleteTemplate = useClubStore((store) => store.deleteTemplate)
   const selectedClubId = useClubStore((store) => store.selectedClubId)
+  const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null)
   
   // Подписываемся на clubs, но мемоизируем результат поиска
   const clubs = useClubStore((store) => store.clubs)
@@ -111,6 +116,29 @@ export const ClubDetailPage = () => {
     navigate(`/clubs/${club.id}/templates/${template.id}`)
   }
 
+  const handleDeleteTemplate = async (templateId: string, templateName: string) => {
+    const confirmed = window.confirm(
+      `Вы уверены, что хотите удалить шаблон "${templateName}"? Это действие нельзя отменить.`
+    )
+    if (!confirmed) return
+
+    setDeletingTemplateId(templateId)
+    try {
+      // Удаляем на сервере
+      await api.deleteTemplate(templateId)
+      
+      // Удаляем из локального store
+      deleteTemplate(templateId)
+      
+      console.log('Template deleted successfully')
+    } catch (error) {
+      console.error('Failed to delete template:', error)
+      alert('Ошибка при удалении шаблона')
+    } finally {
+      setDeletingTemplateId(null)
+    }
+  }
+
   return (
     <Box px={6} py={5} display="flex" flexDirection="column" gap={4} height="100%" overflow="auto">
       <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -175,7 +203,25 @@ export const ClubDetailPage = () => {
                 },
               }}
             >
-              <CardContent sx={{ flexGrow: 1 }}>
+              <CardContent sx={{ flexGrow: 1, position: 'relative' }}>
+                <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
+                  <Tooltip title="Удалить шаблон">
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDeleteTemplate(template.id, template.name)}
+                      disabled={deletingTemplateId === template.id}
+                      sx={{
+                        color: '#666666',
+                        '&:hover': {
+                          color: '#ff4444',
+                          backgroundColor: 'rgba(255, 68, 68, 0.1)',
+                        },
+                      }}
+                    >
+                      <DeleteRoundedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                   Версия {template.version ?? 1}
                 </Typography>
@@ -196,9 +242,10 @@ export const ClubDetailPage = () => {
                   variant="outlined"
                   startIcon={<LaunchRoundedIcon />}
                   fullWidth
+                  disabled={deletingTemplateId === template.id}
                   sx={{ borderColor: cardBorderColor, color: '#FFFFFF', '&:hover': { borderColor: '#444444' } }}
                 >
-                  Открыть
+                  {deletingTemplateId === template.id ? 'Удаление...' : 'Открыть'}
                 </Button>
               </CardActions>
             </Card>
