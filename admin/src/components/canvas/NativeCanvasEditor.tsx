@@ -513,9 +513,15 @@ function renderElement(ctx: CanvasRenderingContext2D, element: EditorElement, is
 
   // Apply transformations if needed
   if (element.rotation !== 0 || element.scale.x !== 1 || element.scale.y !== 1) {
-    const box = element.box || { width: 0, height: 0 }
-    const centerX = element.position.x + box.width / 2
-    const centerY = element.position.y + box.height / 2
+    // Get box for elements that have it
+    let box: { width: number; height: number } | undefined
+    if ('box' in element) {
+      box = element.box
+    }
+    
+    // Use box dimensions if available, otherwise use position as center
+    const centerX = box ? element.position.x + box.width / 2 : element.position.x
+    const centerY = box ? element.position.y + box.height / 2 : element.position.y
     
     ctx.translate(centerX, centerY)
     if (element.rotation !== 0) {
@@ -536,6 +542,13 @@ function renderElement(ctx: CanvasRenderingContext2D, element: EditorElement, is
       break
     case 'image':
       renderImageElement(ctx, element as ImageElement, isSelected)
+      break
+    // Skip rendering for other element types that are not yet implemented
+    case 'pathText':
+    case 'map':
+    case 'group':
+    case 'decorative':
+      // Not implemented yet
       break
   }
 
