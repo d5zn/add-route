@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to import existing templates from app-addicted-logic.js into the database.
+Script to import existing templates from app-5zn-logic.js into the database.
 This script reads the template definitions from the JavaScript file and creates
 corresponding records in the clubs and templates tables.
 """
@@ -89,7 +89,7 @@ def get_db_connection():
     return None
 
 def parse_template_definitions(js_file_path):
-    """Parse template definitions from app-addicted-logic.js"""
+    """Parse template definitions from app-5zn-logic.js"""
     with open(js_file_path, 'r', encoding='utf-8') as f:
         content = f.read()
     
@@ -625,7 +625,7 @@ def import_clubs_and_templates():
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
         # Read template definitions from JavaScript file
-        js_file = os.path.join(os.path.dirname(__file__), 'app-addicted-logic.js')
+        js_file = os.path.join(os.path.dirname(__file__), 'app-5zn-logic.js')
         if not os.path.exists(js_file):
             print(f"❌ File not found: {js_file}")
             return False

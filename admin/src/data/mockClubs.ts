@@ -3,9 +3,9 @@ import { createTemplateDraft } from '../utils/templateFactory.ts'
 
 export const mockClubs: Club[] = [
   {
-    id: 'club-hc',
-    name: 'Hedonism Club',
-    slug: 'hedonism-club',
+    id: 'hedonism',
+    name: 'HEDONISM',
+    slug: 'hedonism',
     description: 'Комьюнити любителей бега и хорошего настроения',
     theme: {
       primaryColor: '#FF5A5F',
@@ -19,10 +19,10 @@ export const mockClubs: Club[] = [
     status: 'active',
   },
   {
-    id: 'club-nip',
-    name: 'NIP Runners',
-    slug: 'nip-runners',
-    description: 'Клуб бегунов NIP',
+    id: 'not-in-paris',
+    name: 'NOT IN PARIS',
+    slug: 'not-in-paris',
+    description: 'Клуб бегунов NOT IN PARIS',
     theme: {
       primaryColor: '#1E40AF',
       secondaryColor: '#10B981',

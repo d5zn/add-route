@@ -83,3 +83,27 @@ athletes_data/
 # Allow admin build artifacts to be committed
 !admin/dist/
 !admin/dist/**
+
+# Temporary and test files
+*.tmp
+*.test
+test.html
+*_backup.*
+*_old.*
+
+# IDE files
+*.swp
+*.swo
+.vscode/settings.json
+.idea/workspace.xml
+
+# OS files
+*.DS_Store
+
+# Database backups
+*.sql.bak
+*.dump
+
+# Cookies and sensitive data
+cookies.txt
+admin/cookies.txt

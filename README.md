@@ -103,33 +103,61 @@ postgresql://postgres:mkuEzDfDJnCePKiizLumEMTuwRqFVJqY@postgres.railway.internal
 
 ```
 5zn-web/
-├── index.html                  # Main HTML (production)
-├── styles-5zn.css             # Main stylesheet
-├── server.py                  # Production HTTP server
-├── config.js                  # Configuration (Strava API keys)
-├── server_config.py          # Server configuration
 │
-├── JavaScript Components
-│   ├── 5zn-store.js          # State management
-│   ├── 5zn-canvas-component.js # Canvas rendering (1080x1920)
-│   ├── app-5zn-logic.js      # Business logic & Strava integration
-│   └── polyline.js           # Polyline encoding/decoding
+├── 🎯 Main Application
+│   ├── index.html                  # Main HTML (production)
+│   ├── activity.html               # Activity detail page
+│   ├── landing.html                # Landing page
+│   ├── information.html            # Information center
+│   ├── styles-5zn.css             # Main stylesheet
+│   ├── config.js                  # Configuration (Strava API keys)
+│   └── polyline.js                # Polyline encoding/decoding
 │
-├── Database
-│   ├── database_schema.sql   # PostgreSQL schema
-│   └── data/                 # JSON fallback (if DB unavailable)
+├── 🧩 JavaScript Components
+│   ├── 5zn-store.js               # State management
+│   ├── 5zn-canvas-component.js    # Canvas rendering (1080x1920)
+│   └── app-5zn-logic.js           # Business logic & Strava integration
 │
-├── OAuth
-│   └── oauth/index.html      # OAuth callback handler
+├── 🔧 Backend
+│   ├── server.py                  # Production HTTP server
+│   ├── server_config.py.example   # Server configuration template
+│   ├── requirements.txt           # Python dependencies
+│   └── import_templates.py        # Template import script
 │
-├── Assets
-│   └── assets/
-│       └── polymer-symbol.svg # Logo
+├── 🗄️ Database
+│   └── db/
+│       ├── README.md              # Database documentation
+│       └── schemas/
+│           ├── 01_main.sql        # Core schema (athletes, tokens)
+│           ├── 02_admin.sql       # Admin schema (clubs, templates)
+│           └── 03_analytics.sql   # Analytics schema
 │
-└── Documentation
-    ├── README.md             # This file
-    ├── RAILWAY_DEPLOY.md     # Railway deployment guide
-    └── OAUTH_SETUP.md        # Strava OAuth setup
+├── 👨‍💼 Admin Panel (React/Vite)
+│   └── admin/
+│       ├── src/                   # React source code
+│       ├── dist/                  # Built admin panel
+│       ├── package.json           # Node dependencies
+│       └── README.md              # Admin documentation
+│
+├── 🔐 OAuth
+│   └── oauth/
+│       └── index.html             # OAuth callback handler
+│
+├── 🎨 Assets
+│   ├── assets/
+│   │   └── polymer-symbol.svg     # Logo
+│   ├── favicon.ico
+│   └── *.svg                      # Various logos
+│
+└── 📚 Documentation
+    ├── README.md                  # This file
+    └── docs/
+        ├── README.md              # Documentation index
+        ├── DOCS.md                # Complete docs
+        ├── PROJECT_STRUCTURE.md   # File structure details
+        ├── deployment/            # Deployment guides
+        ├── guides/                # How-to guides
+        └── archive/               # Historical docs
 ```
 
 ## 🚀 Deployment (Railway)
@@ -353,10 +381,14 @@ Server falls back to JSON files if PostgreSQL unavailable:
 
 ## 📚 Additional Documentation
 
-- `RAILWAY_DEPLOY.md` - Detailed Railway deployment guide
-- `OAUTH_SETUP.md` - Strava OAuth configuration
-- `DATABASE_LOCATION.md` - Database setup instructions
-- `SECURITY_SETUP.md` - Security best practices
+For complete documentation, see [docs/README.md](docs/README.md)
+
+Quick links:
+- [Deployment Guide](docs/deployment/RAILWAY_DEPLOY.md) - Railway deployment
+- [OAuth Setup](docs/guides/OAUTH_SETUP.md) - Strava OAuth configuration
+- [Database Setup](docs/deployment/RAILWAY_DB_SETUP.md) - Database configuration
+- [Security Guide](docs/guides/SECURITY_SETUP.md) - Security best practices
+- [Admin Panel](admin/README.md) - Admin panel documentation
 
 ## 🤝 Contributing
 

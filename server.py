@@ -1719,27 +1719,22 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({'templates': []}).encode())
                 return
             
-            # Map club IDs from main app to admin format
-            club_id_mapping = {
-                'not-in-paris': 'club-nip',
-                'hedonism': 'club-hc',
-                'club-nip': 'club-nip',  # Support both formats
-                'club-hc': 'club-hc',
-            }
-            mapped_club_id = club_id_mapping.get(club_id, club_id)
+            # No mapping needed - IDs are now synchronized between main app and admin
+            # Both use: 'hedonism' and 'not-in-paris'
+            mapped_club_id = club_id
             
             conn = get_db_connection()
             if conn:
                 try:
                     cursor = conn.cursor(cursor_factory=RealDictCursor)
-                    # Ищем шаблоны по обоим ID (оригинальному и маппированному)
+                    # Retrieve published templates for the specified club
                     cursor.execute("""
                         SELECT id, club_id, name, description, tags, 
                                created_at, updated_at, version, status, pages
                         FROM templates 
-                        WHERE (club_id = %s OR club_id = %s) AND status = 'published'
+                        WHERE club_id = %s AND status = 'published'
                         ORDER BY updated_at DESC
-                    """, (club_id, mapped_club_id))
+                    """, (club_id,))
                     
                     templates = cursor.fetchall()
                     
