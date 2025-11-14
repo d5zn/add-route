@@ -104,6 +104,23 @@ export const NativeCanvasEditor = () => {
     }
   }, [page, aspectRatio])
 
+  // Update page size when aspect ratio changes
+  useEffect(() => {
+    if (!page) return
+    
+    const currentCanvasHeight = aspectRatio === '4:5' ? CANVAS_HEIGHT_4_5 : CANVAS_HEIGHT_9_16
+    const expectedWidth = CANVAS_WIDTH
+    const expectedHeight = currentCanvasHeight
+    
+    // Update page size if it doesn't match canvas size
+    if (page.size.width !== expectedWidth || page.size.height !== expectedHeight) {
+      useEditorStore.getState().updatePage(page.id, {
+        ...page,
+        size: { width: expectedWidth, height: expectedHeight }
+      })
+    }
+  }, [page?.id, aspectRatio])
+
   // Render canvas
   const render = useCallback(() => {
     const canvas = canvasRef.current
@@ -122,7 +139,7 @@ export const NativeCanvasEditor = () => {
     const currentCanvasHeight = aspectRatio === '4:5' ? CANVAS_HEIGHT_4_5 : CANVAS_HEIGHT_9_16
     const currentSafeZoneTop = aspectRatio === '4:5' ? INSTAGRAM_SAFE_ZONE_TOP_4_5 : INSTAGRAM_SAFE_ZONE_TOP_9_16
 
-    // Set canvas size
+    // Set canvas size - use actual canvas dimensions, not page size
     canvas.width = CANVAS_WIDTH
     canvas.height = currentCanvasHeight
 
@@ -446,6 +463,16 @@ function renderSafeZones(ctx: CanvasRenderingContext2D, canvasHeight: number, sa
 
 // Render functions
 function renderBackground(ctx: CanvasRenderingContext2D, page: Page, canvasHeight: number) {
+  // Fill with base color first
+  if (page.background?.color) {
+    ctx.fillStyle = page.background.color
+    ctx.fillRect(0, 0, CANVAS_WIDTH, canvasHeight)
+  } else {
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(0, 0, CANVAS_WIDTH, canvasHeight)
+  }
+
+  // Apply gradient if present
   if (page.background?.gradient) {
     const gradient = ctx.createLinearGradient(0, 0, CANVAS_WIDTH, canvasHeight)
     page.background.gradient.stops.forEach((stop) => {
@@ -453,17 +480,52 @@ function renderBackground(ctx: CanvasRenderingContext2D, page: Page, canvasHeigh
     })
     ctx.fillStyle = gradient
     ctx.fillRect(0, 0, CANVAS_WIDTH, canvasHeight)
-  } else if (page.background?.color) {
-    ctx.fillStyle = page.background.color
-    ctx.fillRect(0, 0, CANVAS_WIDTH, canvasHeight)
-  } else {
-    ctx.fillStyle = '#000000'
-    ctx.fillRect(0, 0, CANVAS_WIDTH, canvasHeight)
+  }
+
+  // Apply pattern if present
+  if (page.background?.pattern?.imageId) {
+    const patternImage = imageCache.get(`/assets/${page.background.pattern.imageId}`)
+    if (patternImage && patternImage.complete) {
+      const pattern = ctx.createPattern(patternImage, page.background.pattern.repeat || 'no-repeat')
+      if (pattern) {
+        // Apply pattern scale and rotation if specified
+        if (page.background.pattern.scale !== undefined && page.background.pattern.scale !== 1) {
+          // Note: Canvas patterns don't support direct scaling, would need to use transform
+          // For now, we'll just use the pattern as-is
+        }
+        ctx.fillStyle = pattern
+        ctx.fillRect(0, 0, CANVAS_WIDTH, canvasHeight)
+      }
+    } else {
+      // Try to load the pattern image
+      loadImage(`/assets/${page.background.pattern.imageId}`).catch(() => {
+        // Ignore errors
+      })
+    }
   }
 }
 
 function renderElement(ctx: CanvasRenderingContext2D, element: EditorElement, isSelected: boolean) {
   ctx.save()
+
+  // Apply opacity first (before transformations)
+  ctx.globalAlpha = element.opacity
+
+  // Apply transformations if needed
+  if (element.rotation !== 0 || element.scale.x !== 1 || element.scale.y !== 1) {
+    const box = element.box || { width: 0, height: 0 }
+    const centerX = element.position.x + box.width / 2
+    const centerY = element.position.y + box.height / 2
+    
+    ctx.translate(centerX, centerY)
+    if (element.rotation !== 0) {
+      ctx.rotate((element.rotation * Math.PI) / 180)
+    }
+    if (element.scale.x !== 1 || element.scale.y !== 1) {
+      ctx.scale(element.scale.x, element.scale.y)
+    }
+    ctx.translate(-centerX, -centerY)
+  }
 
   switch (element.kind) {
     case 'text':
@@ -489,7 +551,8 @@ function renderTextElement(ctx: CanvasRenderingContext2D, element: TextElement, 
 
   // Handle multiline text
   const lines = content.split('\n')
-  const lineHeight = style.lineHeight
+  // lineHeight is a multiplier, convert to pixels
+  const lineHeightPx = style.lineHeight * style.fontSize
   let currentY = position.y
 
   for (let i = 0; i < lines.length; i++) {
@@ -504,7 +567,15 @@ function renderTextElement(ctx: CanvasRenderingContext2D, element: TextElement, 
       ctx.font = `bold ${Math.floor(style.fontSize * 1.625)}px ${style.fontFamily}`
     } else {
       // Label line or regular text: use style as is
-      ctx.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize}px ${style.fontFamily}`
+      const fontWeight = typeof style.fontWeight === 'number' 
+        ? style.fontWeight 
+        : style.fontWeight === 'bold' ? 'bold' : 'normal'
+      ctx.font = `${style.fontStyle} ${fontWeight} ${style.fontSize}px ${style.fontFamily}`
+    }
+    
+    // Apply letter spacing if specified
+    if (style.letterSpacing !== 0) {
+      ctx.letterSpacing = `${style.letterSpacing}px`
     }
     
     let x = position.x
@@ -520,7 +591,7 @@ function renderTextElement(ctx: CanvasRenderingContext2D, element: TextElement, 
     if (i === 0 && lines.length === 2) {
       currentY += 10 // Spacing between label and value
     } else {
-      currentY += lineHeight
+      currentY += lineHeightPx
     }
   }
 
