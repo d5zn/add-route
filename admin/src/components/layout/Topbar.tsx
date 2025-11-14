@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react'
 import { AppBar, Box, Button, IconButton, Stack, Toolbar, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
-import SaveRoundedIcon from '@mui/icons-material/SaveRounded'
 import UndoRoundedIcon from '@mui/icons-material/UndoRounded'
 import RedoRoundedIcon from '@mui/icons-material/RedoRounded'
 import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded'
 import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded'
+import RestoreRoundedIcon from '@mui/icons-material/RestoreRounded'
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
 import { useClubStore } from '../../store/useClubStore'
 import { useTemplate, useEditorUi, useEditorStore } from '../../store/useEditorStore'
@@ -23,7 +23,7 @@ export const Topbar = () => {
   const template = useTemplate()
   const ui = useEditorUi()
   const isEditorRoute = /\/templates\//.test(location.pathname)
-  const [isSaving, setIsSaving] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleAspectRatioChange = (_event: React.MouseEvent<HTMLElement>, newRatio: string | null) => {
     if (newRatio) {
@@ -33,34 +33,41 @@ export const Topbar = () => {
     }
   }
 
-  const handleSave = async () => {
-    if (!template || isSaving) return
+  const handleRevertToPublished = async () => {
+    if (!template || isLoading) return
     
-    setIsSaving(true)
+    const confirmed = window.confirm('Вы уверены, что хотите вернуться к опубликованной версии? Все несохраненные изменения будут потеряны.')
+    if (!confirmed) return
+    
+    setIsLoading(true)
     try {
-      // Обновляем шаблон в локальном store
-      const updatedTemplate = {
-        ...template,
-        updatedAt: new Date().toISOString(),
+      // Загружаем опубликованную версию с сервера
+      const publishedTemplate = await api.getTemplate(template.id)
+      
+      // Проверяем, что шаблон действительно опубликован
+      if (publishedTemplate.status !== 'published') {
+        alert('Опубликованная версия не найдена')
+        return
       }
-      useClubStore.getState().upsertTemplate(updatedTemplate)
       
-      // Сохраняем на сервер
-      await api.saveTemplate(updatedTemplate)
+      // Обновляем шаблон в редакторе
+      useEditorStore.getState().setTemplate(publishedTemplate)
+      useClubStore.getState().upsertTemplate(publishedTemplate)
       
-      console.log('Template saved successfully')
+      console.log('Reverted to published version')
+      alert('Восстановлена опубликованная версия')
     } catch (error) {
-      console.error('Failed to save template:', error)
-      alert('Ошибка при сохранении шаблона')
+      console.error('Failed to revert to published version:', error)
+      alert('Ошибка при загрузке опубликованной версии')
     } finally {
-      setIsSaving(false)
+      setIsLoading(false)
     }
   }
 
   const handlePublish = async () => {
-    if (!template || isSaving) return
+    if (!template || isLoading) return
     
-    setIsSaving(true)
+    setIsLoading(true)
     try {
       // Обновляем шаблон со статусом published
       const updatedTemplate = {
@@ -73,13 +80,16 @@ export const Topbar = () => {
       // Сохраняем на сервер
       await api.saveTemplate(updatedTemplate)
       
+      // Обновляем шаблон в редакторе
+      useEditorStore.getState().setTemplate(updatedTemplate)
+      
       console.log('Template published successfully')
       alert('Шаблон опубликован')
     } catch (error) {
       console.error('Failed to publish template:', error)
       alert('Ошибка при публикации шаблона')
     } finally {
-      setIsSaving(false)
+      setIsLoading(false)
     }
   }
 
@@ -184,19 +194,21 @@ export const Topbar = () => {
             <RedoRoundedIcon />
           </IconButton>
           <Box ml={2} display="flex" gap={1}>
-            <Button 
-              variant="outlined" 
-              startIcon={<SaveRoundedIcon />} 
-              disabled={!isEditorRoute || !template || isSaving}
-              onClick={handleSave}
-            >
-              {isSaving ? 'Сохранение...' : 'Сохранить'}
-            </Button>
+            {isEditorRoute && template ? (
+              <Button
+                variant="outlined"
+                startIcon={<RestoreRoundedIcon />}
+                disabled={isLoading}
+                onClick={handleRevertToPublished}
+              >
+                {isLoading ? 'Загрузка...' : 'Вернуть к опубликованной'}
+              </Button>
+            ) : null}
             {isEditorRoute && template ? (
               <Button
                 variant="contained"
                 startIcon={<RocketLaunchRoundedIcon />}
-                disabled={isSaving}
+                disabled={isLoading}
                 onClick={handlePublish}
                 sx={{
                   backgroundColor: template.status === 'published' ? '#10B981' : '#FFFFFF',
