@@ -1768,7 +1768,7 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             if conn:
                 try:
                     cursor = conn.cursor(cursor_factory=RealDictCursor)
-                    # Retrieve published templates for the specified club
+                    # Retrieve published templates for the specified club (exclude deleted)
                     cursor.execute("""
                         SELECT id, club_id, name, description, tags, 
                                created_at, updated_at, version, status, pages
