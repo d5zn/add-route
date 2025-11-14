@@ -208,3 +208,4 @@ python3 check_templates.py
 - `/docs/SYNC_CHANGES.md` - История изменений синхронизации
 - `/docs/API_ENDPOINTS.md` - Документация API
 
+
