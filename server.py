@@ -927,10 +927,29 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_admin_import_templates()
             return
         
+        if path_without_query == '/route/admin/api/check-templates':
+            self.handle_admin_check_templates()
+            return
+        
         if path_without_query.startswith('/route/admin/api/templates/'):
             template_id = path_without_query.split('/route/admin/api/templates/')[1]
             if template_id and template_id != 'import-templates':  # Avoid conflict
                 self.handle_admin_template(template_id)
+                return
+        
+        # Admin sync page
+        if path_without_query == '/route/admin/sync':
+            try:
+                with open('admin_sync.html', 'r', encoding='utf-8') as f:
+                    html_content = f.read()
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Length', len(html_content.encode('utf-8')))
+                self.end_headers()
+                self.wfile.write(html_content.encode('utf-8'))
+                return
+            except FileNotFoundError:
+                self.send_error(404, 'Sync page not found')
                 return
         
         # Admin SPA under /route/admin (after API endpoints)
@@ -1148,6 +1167,11 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         # Admin import templates endpoint (temporary, for one-time import)
         if self.path == '/route/admin/api/import-templates':
             self.handle_admin_import_templates()
+            return
+        
+        # Admin sync templates endpoint
+        if self.path == '/route/admin/api/sync-templates':
+            self.handle_admin_sync_templates()
             return
         
         # OAuth token exchange (works for both root and /route/)
@@ -2265,6 +2289,283 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({'error': 'Internal server error'}).encode())
+    
+    def handle_admin_check_templates(self):
+        """Check current templates status in database"""
+        try:
+            conn = get_db_connection()
+            if not conn:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'Database connection failed'}).encode())
+                return
+            
+            cursor = conn.cursor(cursor_factory=POSTGRES_AVAILABLE and psycopg2.extras.RealDictCursor or None)
+            
+            # Get clubs
+            cursor.execute("SELECT id, name, slug, status FROM clubs ORDER BY id")
+            clubs = cursor.fetchall()
+            
+            # Get all templates (not deleted)
+            cursor.execute("""
+                SELECT id, club_id, name, status, version, created_at, updated_at
+                FROM templates 
+                WHERE status != 'deleted'
+                ORDER BY club_id, name
+            """)
+            templates = cursor.fetchall()
+            
+            # Get stats by club and status
+            cursor.execute("""
+                SELECT club_id, status, COUNT(*) as count
+                FROM templates
+                WHERE status != 'deleted'
+                GROUP BY club_id, status
+                ORDER BY club_id, status
+            """)
+            stats = cursor.fetchall()
+            
+            conn.close()
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                'clubs': clubs,
+                'templates': templates,
+                'stats': stats
+            }, default=str).encode())
+            
+        except Exception as e:
+            print(f"❌ Error checking templates: {e}")
+            import traceback
+            traceback.print_exc()
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(e)}).encode())
+    
+    def handle_admin_sync_templates(self):
+        """Sync fallback templates from app-addicted-logic.js to database"""
+        try:
+            conn = get_db_connection()
+            if not conn:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'Database connection failed'}).encode())
+                return
+            
+            cursor = conn.cursor(cursor_factory=POSTGRES_AVAILABLE and psycopg2.extras.RealDictCursor or None)
+            
+            # Fallback templates from app-addicted-logic.js
+            fallback_templates = {
+                'not-in-paris': [
+                    {
+                        'id': 'nip-classic',
+                        'name': 'Classic Route',
+                        'description': 'Standard overlay with club logo and clean typography.',
+                        'config': {
+                            'backgroundMode': 'image',
+                            'fontColor': 'white',
+                            'isMono': False
+                        },
+                        'badge': 'Default'
+                    },
+                    {
+                        'id': 'nip-mono',
+                        'name': 'Mono Cut',
+                        'description': 'High-contrast monochrome look for bold storytelling.',
+                        'config': {
+                            'backgroundMode': 'image',
+                            'fontColor': 'white',
+                            'isMono': True
+                        },
+                        'badge': 'Alt'
+                    },
+                    {
+                        'id': 'nip-gradient',
+                        'name': 'Sunset Fade',
+                        'description': 'Gradient background with bright typography accents.',
+                        'config': {
+                            'backgroundMode': 'gradient',
+                            'fontColor': 'white',
+                            'isMono': False
+                        },
+                        'badge': 'Special'
+                    }
+                ],
+                'hedonism': [
+                    {
+                        'id': 'hedonism-classic',
+                        'name': 'Hedonism Core',
+                        'description': 'Signature hedonism palette with vivid logo lockup.',
+                        'config': {
+                            'backgroundMode': 'image',
+                            'fontColor': 'white',
+                            'isMono': False
+                        },
+                        'badge': 'Default'
+                    },
+                    {
+                        'id': 'hedonism-night',
+                        'name': 'Night Drive',
+                        'description': 'Dark mode composition with neon typography highlights.',
+                        'config': {
+                            'backgroundMode': 'solid',
+                            'fontColor': 'white',
+                            'isMono': False
+                        },
+                        'badge': 'Alt'
+                    },
+                    {
+                        'id': 'hedonism-mono',
+                        'name': 'Mono Pulse',
+                        'description': 'Monochrome variant for poster-ready storytelling.',
+                        'config': {
+                            'backgroundMode': 'image',
+                            'fontColor': 'white',
+                            'isMono': True
+                        },
+                        'badge': 'Mono'
+                    }
+                ]
+            }
+            
+            created_count = 0
+            updated_count = 0
+            skipped_count = 0
+            results = []
+            
+            for club_id, templates in fallback_templates.items():
+                for template in templates:
+                    # Check if template exists
+                    cursor.execute("SELECT id, name, status, version FROM templates WHERE id = %s", (template['id'],))
+                    existing = cursor.fetchone()
+                    
+                    # Create page structure from config
+                    config = template['config']
+                    background = {}
+                    if config['backgroundMode'] == 'gradient':
+                        background = {
+                            'gradient': {
+                                'type': 'linear',
+                                'angle': 135,
+                                'stops': [
+                                    {'color': '#FF6B6B', 'position': 0},
+                                    {'color': '#4ECDC4', 'position': 50},
+                                    {'color': '#45B7D1', 'position': 100}
+                                ]
+                            }
+                        }
+                    elif config['backgroundMode'] == 'solid':
+                        background = {'color': '#000000'}
+                    else:  # image
+                        background = {'color': '#FFFFFF'}
+                    
+                    page = {
+                        'id': 'page-1',
+                        'name': 'Story 1',
+                        'background': background,
+                        'layers': [
+                            {
+                                'id': 'layer-1',
+                                'name': 'Main Layer',
+                                'visible': True,
+                                'locked': False,
+                                'opacity': 1,
+                                'elements': []
+                            }
+                        ]
+                    }
+                    
+                    pages_json = json.dumps([page])
+                    tags_json = json.dumps([template['badge']])
+                    
+                    if existing:
+                        if existing['status'] != 'published':
+                            # Update status to published
+                            cursor.execute("""
+                                UPDATE templates
+                                SET status = 'published',
+                                    updated_at = CURRENT_TIMESTAMP
+                                WHERE id = %s
+                                RETURNING id, name, status, version
+                            """, (template['id'],))
+                            updated = cursor.fetchone()
+                            updated_count += 1
+                            results.append({
+                                'action': 'updated',
+                                'id': template['id'],
+                                'name': template['name'],
+                                'status': 'published'
+                            })
+                        else:
+                            skipped_count += 1
+                            results.append({
+                                'action': 'skipped',
+                                'id': template['id'],
+                                'name': template['name'],
+                                'status': 'already_published'
+                            })
+                    else:
+                        # Create new template
+                        cursor.execute("""
+                            INSERT INTO templates (
+                                id, club_id, name, description, tags,
+                                pages, version, status,
+                                created_at, updated_at
+                            ) VALUES (
+                                %s, %s, %s, %s, %s::jsonb,
+                                %s::jsonb, 1, 'published',
+                                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                            )
+                            RETURNING id, name, status, version
+                        """, (
+                            template['id'],
+                            club_id,
+                            template['name'],
+                            template['description'],
+                            tags_json,
+                            pages_json
+                        ))
+                        created = cursor.fetchone()
+                        created_count += 1
+                        results.append({
+                            'action': 'created',
+                            'id': template['id'],
+                            'name': template['name'],
+                            'status': 'published'
+                        })
+            
+            conn.commit()
+            conn.close()
+            
+            print(f"✅ Template sync complete: {created_count} created, {updated_count} updated, {skipped_count} skipped")
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                'success': True,
+                'created': created_count,
+                'updated': updated_count,
+                'skipped': skipped_count,
+                'results': results
+            }).encode())
+            
+        except Exception as e:
+            print(f"❌ Error syncing templates: {e}")
+            import traceback
+            traceback.print_exc()
+            if conn:
+                conn.rollback()
+                conn.close()
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(e)}).encode())
     
     def hash_token(self, token):
         """Create a hash of the token for logging purposes"""

@@ -99,6 +99,19 @@ postgresql://postgres:mkuEzDfDJnCePKiizLumEMTuwRqFVJqY@postgres.railway.internal
   - access_token_hash (hashed for security)
   - timestamps (connected_at, last_seen_at)
 
+## 🔧 Quick Fixes
+
+### Template Synchronization Issue
+
+If templates don't match between main app and admin:
+
+```bash
+# Run synchronization script
+python3 sync_fallback_templates.py
+```
+
+See: `ИСПРАВЛЕНИЕ_НЕСООТВЕТСТВИЯ_ШАБЛОНОВ.md` for details.
+
 ## 📁 Project Structure
 
 ```

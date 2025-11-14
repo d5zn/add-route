@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Синхронизация шаблонов - Admin</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000000;
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 40px;
+            border-bottom: 1px solid #222222;
+            padding-bottom: 20px;
+        }
+
+        .branding {
+            font-family: '"SF Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            font-style: italic;
+            font-weight: 850;
+            font-size: 18px;
+            letter-spacing: 0.24em;
+            color: #FFFFFF;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 300;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+        }
+
+        .card {
+            background: #000000;
+            border: 1px solid #222222;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-description {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            background: #ffffff;
+            color: #000000;
+            border: none;
+            padding: 14px 28px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .btn:disabled {
+            background: #333333;
+            color: #666666;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #ffffff;
+            border: 1px solid #ffffff;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #222222;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #666666;
+        }
+
+        .status.success .status-indicator {
+            background: #4ade80;
+        }
+
+        .status.error .status-indicator {
+            background: #ef4444;
+        }
+
+        .status.loading .status-indicator {
+            background: #fbbf24;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .results {
+            margin-top: 24px;
+        }
+
+        .result-section {
+            margin-bottom: 24px;
+        }
+
+        .result-section h3 {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .template-list {
+            list-style: none;
+        }
+
+        .template-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid #222222;
+            margin-bottom: 8px;
+        }
+
+        .template-name {
+            font-size: 14px;
+        }
+
+        .template-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #333333;
+        }
+
+        .template-badge.created {
+            background: rgba(74, 222, 128, 0.1);
+            border-color: #4ade80;
+            color: #4ade80;
+        }
+
+        .template-badge.updated {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+
+        .template-badge.skipped {
+            background: rgba(156, 163, 175, 0.1);
+            border-color: #9ca3af;
+            color: #9ca3af;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .stat-card {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid #222222;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 300;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .club-section {
+            margin-bottom: 32px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid #222222;
+        }
+
+        .club-name {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            color: #ffffff;
+        }
+
+        .club-stats {
+            display: flex;
+            gap: 24px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 12px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            padding: 16px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            color: #ef4444;
+            margin-top: 16px;
+        }
+
+        .success-message {
+            padding: 16px;
+            background: rgba(74, 222, 128, 0.1);
+            border: 1px solid #4ade80;
+            color: #4ade80;
+            margin-top: 16px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 24px;
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s ease;
+        }
+
+        .back-link:hover {
+            color: #ffffff;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="branding">ADMIN PANEL</div>
+            <h1>Синхронизация шаблонов</h1>
+            <p class="subtitle">Управление синхронизацией между основным приложением и админкой</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                <span>🔍</span>
+                <span>Проверка текущего состояния</span>
+            </div>
+            <div class="card-description">
+                Проверьте, какие шаблоны сейчас находятся в базе данных и их статусы.
+            </div>
+            <button id="checkBtn" class="btn btn-secondary" onclick="checkTemplates()">
+                Проверить шаблоны
+            </button>
+            <div id="checkStatus" style="margin-top: 16px;"></div>
+        </div>
+
+        <div id="currentStateSection" style="display: none;">
+            <div class="card">
+                <div class="card-title">
+                    <span>📊</span>
+                    <span>Текущее состояние</span>
+                </div>
+                <div id="currentState"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                <span>🔄</span>
+                <span>Синхронизация фолбэк-шаблонов</span>
+            </div>
+            <div class="card-description">
+                Синхронизирует фолбэк-шаблоны из <code>app-addicted-logic.js</code> с базой данных. 
+                Создаст отсутствующие шаблоны и обновит статус существующих на "published".
+            </div>
+            <div class="action-buttons">
+                <button id="syncBtn" class="btn" onclick="syncTemplates()">
+                    Запустить синхронизацию
+                </button>
+            </div>
+            <div id="syncStatus" style="margin-top: 16px;"></div>
+        </div>
+
+        <div id="resultsSection" style="display: none;">
+            <div class="card">
+                <div class="card-title">
+                    <span>✅</span>
+                    <span>Результаты синхронизации</span>
+                </div>
+                <div id="results"></div>
+            </div>
+        </div>
+
+        <a href="/route/admin" class="back-link">← Вернуться в админку</a>
+    </div>
+
+    <script>
+        async function checkTemplates() {
+            const btn = document.getElementById('checkBtn');
+            const statusDiv = document.getElementById('checkStatus');
+            const stateSection = document.getElementById('currentStateSection');
+            const stateDiv = document.getElementById('currentState');
+
+            btn.disabled = true;
+            statusDiv.innerHTML = '<div class="status loading"><div class="status-indicator"></div>Проверка...</div>';
+            stateSection.style.display = 'none';
+
+            try {
+                const response = await fetch('/route/admin/api/check-templates');
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Ошибка при проверке шаблонов');
+                }
+
+                statusDiv.innerHTML = '<div class="status success"><div class="status-indicator"></div>Проверка завершена</div>';
+                
+                // Display results
+                let html = '';
+
+                // Stats
+                const statsMap = {};
+                data.stats.forEach(stat => {
+                    if (!statsMap[stat.club_id]) {
+                        statsMap[stat.club_id] = {};
+                    }
+                    statsMap[stat.club_id][stat.status] = stat.count;
+                });
+
+                // Group templates by club
+                const templatesByClub = {};
+                data.templates.forEach(template => {
+                    if (!templatesByClub[template.club_id]) {
+                        templatesByClub[template.club_id] = [];
+                    }
+                    templatesByClub[template.club_id].push(template);
+                });
+
+                // Display each club
+                data.clubs.forEach(club => {
+                    const clubStats = statsMap[club.id] || {};
+                    const published = clubStats.published || 0;
+                    const draft = clubStats.draft || 0;
+                    const archived = clubStats.archived || 0;
+                    const templates = templatesByClub[club.id] || [];
+
+                    html += `
+                        <div class="club-section">
+                            <div class="club-name">${club.name} (${club.id})</div>
+                            <div class="club-stats">
+                                <span>✅ Published: ${published}</span>
+                                <span>📝 Draft: ${draft}</span>
+                                <span>📦 Archived: ${archived}</span>
+                            </div>
+                            <ul class="template-list">
+                                ${templates.map(t => `
+                                    <li class="template-item">
+                                        <span class="template-name">${t.name}</span>
+                                        <div>
+                                            <span class="template-badge ${t.status}">${t.status}</span>
+                                            <span style="color: rgba(255,255,255,0.5); font-size: 12px; margin-left: 12px;">v${t.version}</span>
+                                        </div>
+                                    </li>
+                                `).join('')}
+                                ${templates.length === 0 ? '<li class="template-item"><span class="template-name" style="color: rgba(255,255,255,0.5);">Нет шаблонов</span></li>' : ''}
+                            </ul>
+                        </div>
+                    `;
+                });
+
+                if (html === '') {
+                    html = '<div class="empty-state">Шаблоны не найдены в базе данных</div>';
+                }
+
+                stateDiv.innerHTML = html;
+                stateSection.style.display = 'block';
+
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error"><div class="status-indicator"></div>Ошибка</div>
+                                      <div class="error-message">${error.message}</div>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function syncTemplates() {
+            const btn = document.getElementById('syncBtn');
+            const statusDiv = document.getElementById('syncStatus');
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsDiv = document.getElementById('results');
+
+            btn.disabled = true;
+            statusDiv.innerHTML = '<div class="status loading"><div class="status-indicator"></div>Синхронизация...</div>';
+            resultsSection.style.display = 'none';
+
+            try {
+                const response = await fetch('/route/admin/api/sync-templates', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Ошибка при синхронизации');
+                }
+
+                statusDiv.innerHTML = '<div class="status success"><div class="status-indicator"></div>Синхронизация завершена</div>';
+                
+                // Display results
+                let html = '';
+
+                // Stats
+                html += `
+                    <div class="stats">
+                        <div class="stat-card">
+                            <div class="stat-value">${data.created}</div>
+                            <div class="stat-label">Создано</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${data.updated}</div>
+                            <div class="stat-label">Обновлено</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${data.skipped}</div>
+                            <div class="stat-label">Пропущено</div>
+                        </div>
+                    </div>
+                `;
+
+                // Results list
+                const created = data.results.filter(r => r.action === 'created');
+                const updated = data.results.filter(r => r.action === 'updated');
+                const skipped = data.results.filter(r => r.action === 'skipped');
+
+                if (created.length > 0) {
+                    html += `
+                        <div class="result-section">
+                            <h3>Созданные шаблоны</h3>
+                            <ul class="template-list">
+                                ${created.map(t => `
+                                    <li class="template-item">
+                                        <span class="template-name">${t.name}</span>
+                                        <span class="template-badge created">Создан</span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                if (updated.length > 0) {
+                    html += `
+                        <div class="result-section">
+                            <h3>Обновленные шаблоны</h3>
+                            <ul class="template-list">
+                                ${updated.map(t => `
+                                    <li class="template-item">
+                                        <span class="template-name">${t.name}</span>
+                                        <span class="template-badge updated">Обновлен</span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                if (skipped.length > 0) {
+                    html += `
+                        <div class="result-section">
+                            <h3>Пропущенные шаблоны</h3>
+                            <ul class="template-list">
+                                ${skipped.map(t => `
+                                    <li class="template-item">
+                                        <span class="template-name">${t.name}</span>
+                                        <span class="template-badge skipped">Уже опубликован</span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                html += `
+                    <div class="success-message">
+                        Синхронизация завершена успешно! Обновите основное приложение и админку (Ctrl+Shift+R), чтобы увидеть изменения.
+                    </div>
+                `;
+
+                resultsDiv.innerHTML = html;
+                resultsSection.style.display = 'block';
+
+                // Auto-refresh check after sync
+                setTimeout(() => {
+                    checkTemplates();
+                }, 1000);
+
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error"><div class="status-indicator"></div>Ошибка</div>
+                                      <div class="error-message">${error.message}</div>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Auto-check on page load
+        window.addEventListener('load', () => {
+            checkTemplates();
+        });
+    </script>
+</body>
+</html>
+

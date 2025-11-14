@@ -56,3 +56,4 @@ psql 5zn_dev -f db/schemas/03_analytics.sql
 
 If PostgreSQL is unavailable, the server will automatically fall back to JSON file storage in the `data/` directory.
 
+
