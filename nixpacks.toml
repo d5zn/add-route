@@ -1,11 +1,17 @@
 [phases.setup]
-nixPkgs = ["python39"]
+nixPkgs = ["nodejs-20_x", "postgresql"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = [
+  "npm ci",
+  "npx prisma generate"
+]
 
 [phases.build]
-cmds = ["echo 'Build complete'"]
+cmds = [
+  "npm run build",
+  "npx prisma migrate deploy || true"
+]
 
 [start]
-cmd = "python3 server.py"
+cmd = "npm run start:next"

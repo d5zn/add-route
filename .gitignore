@@ -107,3 +107,20 @@ test.html
 # Cookies and sensitive data
 cookies.txt
 admin/cookies.txt
+
+/lib/generated/prisma
+
+# Next.js
+.next/
+out/
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+
+# Prisma
+prisma/migrations/
+!prisma/migrations/.gitkeep
+
+# Build outputs
+dist/
+build/

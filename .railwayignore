@@ -1,51 +1,45 @@
-# Railway ignore file - files to exclude from deployment
+# Railway ignore file
+# Files and directories to exclude from Railway deployment
+
+# Old deprecated code
+admin/
+server.py
+*.py
+__pycache__/
+*.pyc
+
+# Old frontend files
+index.html
+activity.html
+landing.html
+information.html
+admin_panel.html
+admin_sync.html
+addicted-store.js
+addicted-canvas-component.js
+app-addicted-logic.js
+polyline.js
+config.js
+styles-addicted.css
 
 # Development files
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-
-# Node modules (if any)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Environment files
-.env
-.env.local
-server_config.py
-
-# Local data
-/data/
-*.sqlite
-*.db
-
-# IDE
 .vscode/
 .idea/
-*.swp
-*.swo
-*~
+*.log
+.DS_Store
 
-# Git
-.git/
-.gitignore
-
-# Documentation (not needed for runtime)
+# Documentation (keep in repo but not needed in deployment)
+docs/
 *.md
 !README.md
 
-# MacOS
-.DS_Store
+# Test files
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
 
-# Testing
-test/
-tests/
-*.test.js
-
-# Logs
-logs/
-*.log
-
+# Environment files (handled by Railway)
+.env.local
+.env.development
+.env.test
