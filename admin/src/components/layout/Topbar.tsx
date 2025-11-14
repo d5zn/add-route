@@ -57,6 +57,32 @@ export const Topbar = () => {
     }
   }
 
+  const handlePublish = async () => {
+    if (!template || isSaving) return
+    
+    setIsSaving(true)
+    try {
+      // Обновляем шаблон со статусом published
+      const updatedTemplate = {
+        ...template,
+        status: 'published' as const,
+        updatedAt: new Date().toISOString(),
+      }
+      useClubStore.getState().upsertTemplate(updatedTemplate)
+      
+      // Сохраняем на сервер
+      await api.saveTemplate(updatedTemplate)
+      
+      console.log('Template published successfully')
+      alert('Шаблон опубликован')
+    } catch (error) {
+      console.error('Failed to publish template:', error)
+      alert('Ошибка при публикации шаблона')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <AppBar
       position="static"
@@ -170,10 +196,17 @@ export const Topbar = () => {
               <Button
                 variant="contained"
                 startIcon={<RocketLaunchRoundedIcon />}
-                component={RouterLink}
-                to={`/clubs/${template.clubId ?? club?.id ?? ''}/templates/${template.id}`}
+                disabled={isSaving}
+                onClick={handlePublish}
+                sx={{
+                  backgroundColor: template.status === 'published' ? '#10B981' : '#FFFFFF',
+                  color: template.status === 'published' ? '#FFFFFF' : '#000000',
+                  '&:hover': {
+                    backgroundColor: template.status === 'published' ? '#059669' : '#F0F0F0',
+                  },
+                }}
               >
-                Опубликовать
+                {template.status === 'published' ? 'Опубликован' : 'Опубликовать'}
               </Button>
             ) : (
               <Button variant="contained" startIcon={<RocketLaunchRoundedIcon />} disabled>

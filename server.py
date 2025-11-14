@@ -1719,17 +1719,27 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({'templates': []}).encode())
                 return
             
+            # Map club IDs from main app to admin format
+            club_id_mapping = {
+                'not-in-paris': 'club-nip',
+                'hedonism': 'club-hc',
+                'club-nip': 'club-nip',  # Support both formats
+                'club-hc': 'club-hc',
+            }
+            mapped_club_id = club_id_mapping.get(club_id, club_id)
+            
             conn = get_db_connection()
             if conn:
                 try:
                     cursor = conn.cursor(cursor_factory=RealDictCursor)
+                    # Ищем шаблоны по обоим ID (оригинальному и маппированному)
                     cursor.execute("""
                         SELECT id, club_id, name, description, tags, 
                                created_at, updated_at, version, status, pages
                         FROM templates 
-                        WHERE club_id = %s AND status = 'published'
+                        WHERE (club_id = %s OR club_id = %s) AND status = 'published'
                         ORDER BY updated_at DESC
-                    """, (club_id,))
+                    """, (club_id, mapped_club_id))
                     
                     templates = cursor.fetchall()
                     
@@ -2077,7 +2087,14 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     existing = cursor.fetchone()
                     
                     if existing:
-                        # Update existing template
+                        # Update existing template - сохраняем переданный статус или оставляем текущий
+                        current_status = template_data.get('status')
+                        if not current_status:
+                            # Если статус не передан, получаем текущий из БД
+                            cursor.execute("SELECT status FROM templates WHERE id = %s", (template_id,))
+                            current_row = cursor.fetchone()
+                            current_status = current_row.get('status', 'draft') if current_row else 'draft'
+                        
                         cursor.execute("""
                             UPDATE templates 
                             SET name = %s, description = %s, tags = %s, pages = %s, 
@@ -2089,7 +2106,7 @@ class ProductionHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                             json.dumps(template_data.get('tags', [])),
                             json.dumps(template_data.get('pages', [])),
                             template_data.get('version', 1),
-                            template_data.get('status', 'draft'),
+                            current_status,
                             template_id
                         ))
                     else:
