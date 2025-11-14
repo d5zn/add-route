@@ -1,5 +1,4 @@
 import type { Club, Template } from '../types/index.ts'
-import { createTemplateDraft } from '../utils/templateFactory.ts'
 
 export const mockClubs: Club[] = [
   {
@@ -36,10 +35,8 @@ export const mockClubs: Club[] = [
   },
 ]
 
-export const mockTemplates: Template[] = [
-  createTemplateDraft({ clubId: mockClubs[0].id, name: 'Анонс забега' }),
-  createTemplateDraft({ clubId: mockClubs[0].id, name: 'Результаты' }),
-  createTemplateDraft({ clubId: mockClubs[1].id, name: 'Новичкам' }),
-]
+// Mock-шаблоны убраны - используем только данные из API/БД
+// Это обеспечивает соответствие с fallback-шаблонами основного приложения
+export const mockTemplates: Template[] = []
 
 
