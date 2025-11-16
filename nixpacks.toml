@@ -1,9 +1,9 @@
 [phases.setup]
-nixPkgs = ["nodejs_20"]
+nixPkgs = ["nodejs_20", "openssl"]
 
 [phases.install]
 cmds = [
-  "npm ci --ignore-scripts",
+  "npm ci",
   "npx prisma generate"
 ]
 
@@ -14,3 +14,6 @@ cmds = [
 
 [start]
 cmd = "npm run start"
+
+[variables]
+NEXT_TELEMETRY_DISABLED = "1"
