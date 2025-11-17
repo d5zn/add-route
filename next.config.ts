@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
     },
   },
   
-  // Disable static optimization for API routes during build
+  // Use standalone output for Railway Docker deployment
   output: 'standalone',
 }
 

@@ -3,15 +3,17 @@ nixPkgs = ["nodejs_20", "openssl"]
 
 [phases.install]
 cmds = [
-  "npm ci"
+  "npm ci",
+  "npx prisma generate || echo 'Prisma generate completed (may have warnings if DATABASE_URL not set)'"
 ]
 
-# Prisma generate is called in postinstall hook, but we ensure it runs here too
-# This allows build to work even if DATABASE_URL is not set (Prisma can generate without connection)
+# Build phase - ensure all config files are present
+# Try webpack build first (more stable for module resolution)
 [phases.build]
 cmds = [
-  "npx prisma generate || echo 'Prisma generate completed (may have warnings if DATABASE_URL not set)'",
-  "npm run build"
+  "ls -la tsconfig.json jsconfig.json || echo 'Config files check'",
+  "cat tsconfig.json | grep -A 2 paths || echo 'Paths config check'",
+  "npm run build:webpack || npm run build"
 ]
 
 [start]
@@ -19,3 +21,4 @@ cmd = "npm run start"
 
 [variables]
 NEXT_TELEMETRY_DISABLED = "1"
+NODE_ENV = "production"
