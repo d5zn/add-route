@@ -124,3 +124,9 @@ prisma/migrations/
 # Build outputs
 dist/
 build/
+
+# Duplicate files (prevent accidental creation)
+* 2.*
+* 2/
+**/* 2.*
+**/* 2/
