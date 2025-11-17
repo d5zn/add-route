@@ -24,18 +24,25 @@ COPY . .
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV DOCKER_BUILD=1
 
 # Verify config files are present and show their content
 RUN echo "=== Checking config files ===" && \
-    ls -la tsconfig.json jsconfig.json && \
+    ls -la tsconfig.json jsconfig.json next.config.ts && \
     echo "=== tsconfig.json paths ===" && \
     cat tsconfig.json | grep -A 2 paths && \
     echo "=== jsconfig.json paths ===" && \
     cat jsconfig.json | grep -A 2 paths && \
     echo "=== lib directory ===" && \
-    ls -la lib/ | head -5 && \
+    ls -la lib/ && \
     echo "=== Checking lib files ===" && \
-    ls -la lib/polyline.ts lib/strava.ts lib/validation.ts 2>&1 || echo "Some lib files missing"
+    ls -la lib/polyline.ts lib/strava.ts lib/validation.ts lib/api.ts lib/db.ts 2>&1 && \
+    echo "=== Current working directory ===" && \
+    pwd && \
+    echo "=== Verifying lib files exist ===" && \
+    test -f lib/polyline.ts && echo "✓ lib/polyline.ts exists" || echo "✗ lib/polyline.ts missing" && \
+    test -f lib/api.ts && echo "✓ lib/api.ts exists" || echo "✗ lib/api.ts missing" && \
+    test -f lib/db.ts && echo "✓ lib/db.ts exists" || echo "✗ lib/db.ts missing"
 
 # Build Next.js with webpack (more stable for module resolution in Docker)
 # Using --webpack flag explicitly to force webpack usage

@@ -34,20 +34,35 @@ const nextConfig: NextConfig = {
     if (!config.resolve) {
       config.resolve = {}
     }
-    if (!config.resolve.alias) {
-      config.resolve.alias = {}
-    }
     
-    // Set @ alias to project root
     const projectRoot = path.resolve(__dirname)
-    config.resolve.alias['@'] = projectRoot
     
-    // Also ensure modules can be resolved from project root
-    if (!config.resolve.modules) {
-      config.resolve.modules = []
+    // Configure aliases - ensure @ points to project root
+    // This is critical for Docker builds where path resolution can fail
+    const existingAlias = config.resolve.alias || {}
+    config.resolve.alias = {
+      ...existingAlias,
+      '@': projectRoot,
     }
-    if (!config.resolve.modules.includes(projectRoot)) {
-      config.resolve.modules.push(projectRoot)
+    
+    // Ensure modules can be resolved from project root
+    // This helps webpack find modules when @ alias is used
+    if (!config.resolve.modules) {
+      config.resolve.modules = ['node_modules']
+    }
+    if (Array.isArray(config.resolve.modules)) {
+      // Add project root to modules resolution
+      if (!config.resolve.modules.includes(projectRoot)) {
+        config.resolve.modules = [projectRoot, ...config.resolve.modules]
+      }
+    }
+    
+    // Debug logging (always in Docker/build environments)
+    if (process.env.NODE_ENV === 'development' || process.env.DOCKER_BUILD === '1') {
+      console.log('🔧 Webpack config - projectRoot:', projectRoot)
+      console.log('🔧 Webpack config - alias @:', config.resolve.alias['@'])
+      console.log('🔧 Webpack config - modules:', config.resolve.modules)
+      console.log('🔧 Webpack config - __dirname:', __dirname)
     }
     
     return config
