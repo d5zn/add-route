@@ -29,7 +29,8 @@
   "license": "MIT",
   "devDependencies": {
     "live-server": "^1.2.2",
-    "serve": "^14.2.1"
+    "serve": "^14.2.1",
+    "tsconfig-paths-webpack-plugin": "^4.2.0"
   },
   "repository": {
     "type": "git",
