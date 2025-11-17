@@ -24,7 +24,6 @@ COPY . .
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-ENV NEXT_PRIVATE_SKIP_TURBOPACK=1
 
 # Verify config files are present and show their content
 RUN echo "=== Checking config files ===" && \
@@ -34,11 +33,14 @@ RUN echo "=== Checking config files ===" && \
     echo "=== jsconfig.json paths ===" && \
     cat jsconfig.json | grep -A 2 paths && \
     echo "=== lib directory ===" && \
-    ls -la lib/ | head -5
+    ls -la lib/ | head -5 && \
+    echo "=== Checking lib files ===" && \
+    ls -la lib/polyline.ts lib/strava.ts lib/validation.ts 2>&1 || echo "Some lib files missing"
 
 # Build Next.js with webpack (more stable for module resolution in Docker)
-# NEXT_PRIVATE_SKIP_TURBOPACK=1 is set via ENV above
-RUN npm run build:webpack || npm run build
+# Using --webpack flag explicitly to force webpack usage
+RUN echo "=== Building with webpack ===" && \
+    npm run build:webpack 2>&1 | head -30 || (echo "=== Build failed, showing error ===" && npm run build:webpack 2>&1 | tail -50 && exit 1)
 
 # Production image, copy all the files and run next
 FROM base AS runner

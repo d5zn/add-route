@@ -29,15 +29,27 @@ const nextConfig: NextConfig = {
   turbopack: {},
   
   // Webpack configuration for better module resolution in Docker
-  // This will be used when NEXT_PRIVATE_SKIP_TURBOPACK=1 is set
   webpack: (config, { isServer }) => {
     // Explicitly configure path aliases for webpack
-    if (config.resolve) {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        '@': path.resolve(__dirname),
-      }
+    if (!config.resolve) {
+      config.resolve = {}
     }
+    if (!config.resolve.alias) {
+      config.resolve.alias = {}
+    }
+    
+    // Set @ alias to project root
+    const projectRoot = path.resolve(__dirname)
+    config.resolve.alias['@'] = projectRoot
+    
+    // Also ensure modules can be resolved from project root
+    if (!config.resolve.modules) {
+      config.resolve.modules = []
+    }
+    if (!config.resolve.modules.includes(projectRoot)) {
+      config.resolve.modules.push(projectRoot)
+    }
+    
     return config
   },
 }
