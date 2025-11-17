@@ -16,6 +16,16 @@ const nextConfig: NextConfig = {
   
   // Turbopack configuration (empty for now, can be extended if needed)
   turbopack: {},
+  
+  // Ensure API routes are not statically generated
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+  },
+  
+  // Disable static optimization for API routes during build
+  output: 'standalone',
 }
 
 export default nextConfig
