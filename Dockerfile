@@ -24,9 +24,21 @@ COPY . .
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV NEXT_PRIVATE_SKIP_TURBOPACK=1
 
-# Build Next.js
-RUN npm run build
+# Verify config files are present and show their content
+RUN echo "=== Checking config files ===" && \
+    ls -la tsconfig.json jsconfig.json && \
+    echo "=== tsconfig.json paths ===" && \
+    cat tsconfig.json | grep -A 2 paths && \
+    echo "=== jsconfig.json paths ===" && \
+    cat jsconfig.json | grep -A 2 paths && \
+    echo "=== lib directory ===" && \
+    ls -la lib/ | head -5
+
+# Build Next.js with webpack (more stable for module resolution in Docker)
+# NEXT_PRIVATE_SKIP_TURBOPACK=1 is set via ENV above
+RUN npm run build:webpack || npm run build
 
 # Production image, copy all the files and run next
 FROM base AS runner

@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next'
+import path from 'path'
 
 const nextConfig: NextConfig = {
   /* Config options */
@@ -14,9 +15,6 @@ const nextConfig: NextConfig = {
     ]
   },
   
-  // Turbopack configuration (empty for now, can be extended if needed)
-  turbopack: {},
-  
   // Ensure API routes are not statically generated
   experimental: {
     serverActions: {
@@ -26,6 +24,22 @@ const nextConfig: NextConfig = {
   
   // Use standalone output for Railway Docker deployment
   output: 'standalone',
+  
+  // Turbopack configuration (empty to allow webpack fallback)
+  turbopack: {},
+  
+  // Webpack configuration for better module resolution in Docker
+  // This will be used when NEXT_PRIVATE_SKIP_TURBOPACK=1 is set
+  webpack: (config, { isServer }) => {
+    // Explicitly configure path aliases for webpack
+    if (config.resolve) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@': path.resolve(__dirname),
+      }
+    }
+    return config
+  },
 }
 
 export default nextConfig
