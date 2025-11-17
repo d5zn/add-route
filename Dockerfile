@@ -61,6 +61,9 @@ RUN echo "=== Checking config files ===" && \
 RUN echo "=== Building with webpack ===" && \
     npm run build:webpack || (echo "=== Build failed, showing error ===" && npm run build:webpack 2>&1 | tail -50 && exit 1)
 
+# Create public directory if it doesn't exist (Next.js may not require it with App Router)
+RUN mkdir -p public || true
+
 # Verify build output exists
 RUN echo "=== Verifying build output ===" && \
     ls -la .next/ 2>&1 | head -10 && \
@@ -84,9 +87,11 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy necessary files
-# Copy public and .next directory first
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+# Copy .next directory first
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+
+# Copy public directory (created in builder stage, even if empty)
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Copy standalone if it exists, otherwise we'll use regular structure
 # Also copy node_modules and package.json for fallback
