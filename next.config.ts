@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
       },
     ]
   },
+  
+  // Turbopack configuration (empty for now, can be extended if needed)
+  turbopack: {},
 }
 
 export default nextConfig
