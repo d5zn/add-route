@@ -53,9 +53,13 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy necessary files
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+# With standalone output, Next.js creates a self-contained directory
+# that includes server.js, node_modules, .next, and public files
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+
+# Note: .next/static is already included in .next/standalone/.next/static
+# We don't need to copy it separately unless it exists at the root level
 
 USER nextjs
 
@@ -64,5 +68,7 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+# With standalone output, server.js is in .next/standalone/server.js
+# But we copy standalone to root, so server.js should be at ./server.js
 CMD ["node", "server.js"]
 
