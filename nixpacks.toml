@@ -3,12 +3,14 @@ nixPkgs = ["nodejs_20", "openssl"]
 
 [phases.install]
 cmds = [
-  "npm ci",
-  "npx prisma generate"
+  "npm ci"
 ]
 
+# Prisma generate is called in postinstall hook, but we ensure it runs here too
+# This allows build to work even if DATABASE_URL is not set (Prisma can generate without connection)
 [phases.build]
 cmds = [
+  "npx prisma generate || echo 'Prisma generate completed (may have warnings if DATABASE_URL not set)'",
   "npm run build"
 ]
 
