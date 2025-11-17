@@ -40,7 +40,19 @@ RUN echo "=== Checking config files ===" && \
 # Build Next.js with webpack (more stable for module resolution in Docker)
 # Using --webpack flag explicitly to force webpack usage
 RUN echo "=== Building with webpack ===" && \
-    npm run build:webpack 2>&1 | head -30 || (echo "=== Build failed, showing error ===" && npm run build:webpack 2>&1 | tail -50 && exit 1)
+    npm run build:webpack || (echo "=== Build failed, showing error ===" && npm run build:webpack 2>&1 | tail -50 && exit 1)
+
+# Verify build output exists
+RUN echo "=== Verifying build output ===" && \
+    ls -la .next/ 2>&1 | head -10 && \
+    if [ -d ".next/standalone" ]; then \
+      echo "✓ Standalone output found"; \
+      ls -la .next/standalone/ | head -10; \
+    else \
+      echo "⚠ Standalone output NOT found - will use regular build structure"; \
+      echo "Checking .next directory structure:"; \
+      find .next -type d -maxdepth 2 2>&1 | head -20; \
+    fi
 
 # Production image, copy all the files and run next
 FROM base AS runner
@@ -53,13 +65,23 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy necessary files
-# With standalone output, Next.js creates a self-contained directory
-# that includes server.js, node_modules, .next, and public files
+# Copy public and .next directory first
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 
-# Note: .next/static is already included in .next/standalone/.next/static
-# We don't need to copy it separately unless it exists at the root level
+# Copy standalone if it exists, otherwise we'll use regular structure
+# Also copy node_modules and package.json for fallback
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+
+# Check if standalone exists and use it, otherwise use regular structure
+RUN if [ -d "./.next/standalone" ]; then \
+      echo "Using standalone output"; \
+      cp -r ./.next/standalone/* . && \
+      rm -rf ./.next/standalone; \
+    else \
+      echo "Using regular build structure with node_modules"; \
+    fi
 
 USER nextjs
 
@@ -68,7 +90,6 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# With standalone output, server.js is in .next/standalone/server.js
-# But we copy standalone to root, so server.js should be at ./server.js
-CMD ["node", "server.js"]
+# Try standalone server.js first, fallback to next start
+CMD ["sh", "-c", "if [ -f './server.js' ]; then node server.js; else npm run start; fi"]
 
