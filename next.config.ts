@@ -69,9 +69,13 @@ const nextConfig: NextConfig = {
     }
     
     // Try to use tsconfig-paths-webpack-plugin if available (better path resolution)
-    if (TsconfigPathsPlugin && config.plugins) {
+    // CRITICAL: This plugin must be in resolve.plugins, not config.plugins
+    if (TsconfigPathsPlugin) {
       try {
-        config.plugins.push(
+        if (!config.resolve.plugins) {
+          config.resolve.plugins = []
+        }
+        config.resolve.plugins.push(
           new TsconfigPathsPlugin({
             configFile: path.join(projectRoot, 'tsconfig.json'),
             extensions: config.resolve.extensions || ['.ts', '.tsx', '.js', '.jsx'],

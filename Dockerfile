@@ -19,7 +19,19 @@ RUN npm ci
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+
+# Copy all source files - ensure lib/ directory is included
 COPY . .
+
+# Verify that lib files are actually copied
+RUN echo "=== Verifying files are copied ===" && \
+    ls -la && \
+    echo "=== lib directory contents ===" && \
+    ls -la lib/ 2>&1 || echo "lib directory not found!" && \
+    echo "=== Checking specific lib files ===" && \
+    test -f lib/api.ts && echo "✓ lib/api.ts exists" || echo "✗ lib/api.ts MISSING" && \
+    test -f lib/polyline.ts && echo "✓ lib/polyline.ts exists" || echo "✗ lib/polyline.ts MISSING" && \
+    test -f lib/db.ts && echo "✓ lib/db.ts exists" || echo "✗ lib/db.ts MISSING"
 
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
