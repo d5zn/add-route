@@ -8,10 +8,12 @@ WORKDIR /app
 
 # Copy package files
 COPY package.json package-lock.json* ./
-RUN npm ci
 
-# Generate Prisma Client
-RUN npx prisma generate || echo "Prisma generate completed (may have warnings)"
+# Copy Prisma schema (needed for postinstall hook)
+COPY prisma ./prisma
+
+# Install dependencies (postinstall will run prisma generate)
+RUN npm ci
 
 # Rebuild the source code only when needed
 FROM base AS builder
