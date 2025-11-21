@@ -10,14 +10,14 @@ function isValidSession(token: string): boolean {
   try {
     const [data, signature] = token.split('.')
     if (!data || !signature) return false
-    
+
     const session = JSON.parse(Buffer.from(data, 'base64').toString('utf-8'))
-    
+
     // Check expiration
     if (session.expiresAt < Date.now()) {
       return false
     }
-    
+
     return true
   } catch (error) {
     return false
@@ -26,23 +26,23 @@ function isValidSession(token: string): boolean {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  
-  // Protect /admin routes (except /admin/login)
-  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+
+  // Protect /route/admin routes (except /route/admin/login)
+  if (pathname.startsWith('/route/admin') && pathname !== '/route/admin/login') {
     const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value
-    
+
     if (!sessionToken || !isValidSession(sessionToken)) {
       // Redirect to login page
-      const loginUrl = new URL('/admin/login', request.url)
+      const loginUrl = new URL('/route/admin/login', request.url)
       loginUrl.searchParams.set('redirect', pathname)
       return NextResponse.redirect(loginUrl)
     }
   }
-  
+
   // Protect /api/admin routes
   if (pathname.startsWith('/api/admin') && !pathname.startsWith('/api/admin/login')) {
     const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value
-    
+
     if (!sessionToken || !isValidSession(sessionToken)) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -50,13 +50,13 @@ export function middleware(request: NextRequest) {
       )
     }
   }
-  
+
   return NextResponse.next()
 }
 
 export const config = {
   matcher: [
-    '/admin/:path*',
+    '/route/admin/:path*',
     '/api/admin/:path*',
   ],
 }

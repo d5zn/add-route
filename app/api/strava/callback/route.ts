@@ -12,25 +12,25 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const code = searchParams.get('code')
     const error = searchParams.get('error')
-    
+
     if (error) {
       // User declined authorization
       return NextResponse.redirect(new URL('/?error=access_denied', request.url))
     }
-    
+
     if (!code) {
       return NextResponse.redirect(new URL('/?error=missing_code', request.url))
     }
-    
+
     // Exchange code for access token
     const tokenResponse = await exchangeStravaCode(code)
-    
+
     // Hash access token for storage (for security)
     const accessTokenHash = createHmac('sha256', process.env.ADMIN_SESSION_SECRET || 'secret')
       .update(tokenResponse.access_token)
       .digest('hex')
       .substring(0, 64)
-    
+
     // Upsert athlete
     const athlete = await prisma.athlete.upsert({
       where: { athleteId: tokenResponse.athlete.id },
@@ -61,12 +61,12 @@ export async function GET(request: NextRequest) {
         isActive: true,
       },
     })
-    
+
     // Upsert token (delete old tokens and create new one for simplicity)
     await prisma.token.deleteMany({
       where: { athleteId: tokenResponse.athlete.id },
     })
-    
+
     await prisma.token.create({
       data: {
         athleteId: tokenResponse.athlete.id,
@@ -75,16 +75,16 @@ export async function GET(request: NextRequest) {
         expiresAt: new Date(tokenResponse.expires_at * 1000),
       },
     })
-    
+
     // Track auth event for analytics
     await prisma.authEvent.create({
       data: {
         athleteId: tokenResponse.athlete.id,
       },
     })
-    
+
     // Redirect to app with athlete ID
-    const appUrl = new URL('/app', request.url)
+    const appUrl = new URL('/route', request.url)
     appUrl.searchParams.set('athlete_id', tokenResponse.athlete.id.toString())
     return NextResponse.redirect(appUrl)
   } catch (error) {

@@ -10,10 +10,10 @@ export default function ClubDetailPage() {
   const params = useParams()
   const router = useRouter()
   const clubId = params.id as string
-  
+
   const { clubs, templates, selectClub, loadTemplates, deleteTemplate } = useClubStore()
   const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null)
-  
+
   const club = useMemo(() => {
     return clubs.find((item) => item.id === clubId) ?? null
   }, [clubs, clubId])
@@ -37,24 +37,24 @@ export default function ClubDetailPage() {
 
   useEffect(() => {
     if (!clubId) return
-    
+
     selectClub(clubId)
     loadTemplates(clubId)
   }, [clubId, selectClub, loadTemplates])
 
   const handleCreateTemplate = async () => {
     if (!club) return
-    
+
     try {
       const template = useClubStore.getState().createTemplate({
         clubId: club.id,
         name: `${club.name} Новый дизайн`,
         background: { color: theme.backgroundColor },
       })
-      
+
       const created = await api.createTemplate(template)
       useClubStore.getState().upsertTemplate(created)
-      router.push(`/admin/clubs/${club.id}/templates/${created.id}`)
+      router.push(`/route/admin/clubs/${club.id}/templates/${created.id}`)
     } catch (error) {
       console.error('Failed to create template:', error)
       alert('Ошибка при создании шаблона')
@@ -83,7 +83,7 @@ export default function ClubDetailPage() {
     return (
       <div className="p-6">
         <h2 className="text-2xl font-bold mb-4">Клуб не найден</h2>
-        <Link href="/admin/clubs" className="px-4 py-2 bg-white text-black hover:bg-gray-200 transition-colors inline-block">
+        <Link href="/route/admin/clubs" className="px-4 py-2 bg-white text-black hover:bg-gray-200 transition-colors inline-block">
           Вернуться к списку
         </Link>
       </div>
@@ -153,7 +153,7 @@ export default function ClubDetailPage() {
               </div>
               <div className="p-6 pt-0">
                 <Link
-                  href={`/admin/clubs/${club.id}/templates/${template.id}`}
+                  href={`/route/admin/clubs/${club.id}/templates/${template.id}`}
                   className="block w-full px-4 py-2 border border-gray-800 hover:border-gray-600 transition-colors text-center disabled:opacity-50"
                 >
                   {deletingTemplateId === template.id ? 'Удаление...' : 'Открыть'}

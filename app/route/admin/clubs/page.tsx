@@ -63,8 +63,8 @@ export default function ClubsPage() {
       setSlug('')
       setDescription('')
       setTheme({ ...DEFAULT_THEME })
-      
-      router.push(`/admin/clubs/${club.id}`)
+
+      router.push(`/route/admin/clubs/${club.id}`)
     } catch (error) {
       console.error('Failed to create club:', error)
       alert('Ошибка при создании клуба')
@@ -99,7 +99,7 @@ export default function ClubsPage() {
           return (
             <Link
               key={club.id}
-              href={`/admin/clubs/${club.id}`}
+              href={`/route/admin/clubs/${club.id}`}
               className="block border border-gray-800 hover:border-gray-600 transition-colors bg-black p-6"
             >
               <div

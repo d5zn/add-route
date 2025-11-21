@@ -8,25 +8,25 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-    
+
     const formData = new FormData(e.currentTarget)
     const username = formData.get('username') as string
     const password = formData.get('password') as string
-    
+
     try {
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       })
-      
+
       if (response.ok) {
-        const redirect = searchParams.get('redirect') || '/admin'
+        const redirect = searchParams.get('redirect') || '/route/admin'
         router.push(redirect)
         router.refresh()
       } else {
@@ -39,7 +39,7 @@ function LoginForm() {
       setLoading(false)
     }
   }
-  
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md p-12 border border-gray-800">
@@ -51,7 +51,7 @@ function LoginForm() {
             Sign in to manage templates and club assets
           </p>
         </div>
-        
+
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
             <label htmlFor="username" className="block text-xs uppercase tracking-wider mb-2 text-gray-400">
@@ -68,7 +68,7 @@ function LoginForm() {
               placeholder="Enter username"
             />
           </div>
-          
+
           <div>
             <label htmlFor="password" className="block text-xs uppercase tracking-wider mb-2 text-gray-400">
               Password
@@ -84,7 +84,7 @@ function LoginForm() {
               placeholder="Enter password"
             />
           </div>
-          
+
           <button
             type="submit"
             disabled={loading}
@@ -92,7 +92,7 @@ function LoginForm() {
           >
             {loading ? 'Signing in...' : 'Continue'}
           </button>
-          
+
           {error && (
             <p className="text-xs text-center text-red-500">
               {error}

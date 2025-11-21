@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 
 export default function AdminPage() {
-  redirect('/admin/clubs')
+  redirect('/route/admin/clubs')
 }
 

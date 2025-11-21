@@ -12,43 +12,36 @@ try {
 const nextConfig: NextConfig = {
   /* Config options */
   reactStrictMode: true,
-  
+
   // Serve static files from the old structure
-  async rewrites() {
-    return [
-      {
-        source: '/route/:path*',
-        destination: '/:path*',
-      },
-    ]
-  },
-  
+
+
   // Ensure API routes are not statically generated
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
     },
   },
-  
+
   // Use standalone output for Railway Docker deployment
   output: 'standalone',
-  
+
   // Turbopack configuration (empty to allow webpack fallback)
   turbopack: {},
-  
+
   // Webpack configuration for better module resolution in Docker
   webpack: (config, { isServer }) => {
     const projectRoot = path.resolve(__dirname)
-    
+
     // CRITICAL FIX: Next.js should read paths from tsconfig.json automatically,
     // but in Docker/webpack builds it sometimes fails. We explicitly configure it.
     if (!config.resolve) {
       config.resolve = {}
     }
-    
+
     // Get existing aliases (Next.js may have already set some from tsconfig.json)
     const existingAlias = config.resolve.alias || {}
-    
+
     // CRITICAL: Set @ alias to project root with trailing slash handling
     // Webpack needs this to resolve @/lib/api correctly
     config.resolve.alias = {
@@ -56,7 +49,7 @@ const nextConfig: NextConfig = {
       // Main alias - points to project root
       '@': projectRoot,
     }
-    
+
     // Ensure modules can be resolved from project root
     if (!config.resolve.modules) {
       config.resolve.modules = ['node_modules']
@@ -67,7 +60,7 @@ const nextConfig: NextConfig = {
         config.resolve.modules = [projectRoot, ...config.resolve.modules]
       }
     }
-    
+
     // Try to use tsconfig-paths-webpack-plugin if available (better path resolution)
     // CRITICAL: This plugin must be in resolve.plugins, not config.plugins
     if (TsconfigPathsPlugin) {
@@ -90,7 +83,7 @@ const nextConfig: NextConfig = {
         }
       }
     }
-    
+
     // Debug logging (always in Docker/build environments)
     if (process.env.NODE_ENV === 'development' || process.env.DOCKER_BUILD === '1') {
       const fs = require('fs')
@@ -101,7 +94,7 @@ const nextConfig: NextConfig = {
       console.log('🔧 Testing lib/polyline.ts exists:', fs.existsSync(path.join(projectRoot, 'lib', 'polyline.ts')))
       console.log('🔧 Testing lib/db.ts exists:', fs.existsSync(path.join(projectRoot, 'lib', 'db.ts')))
     }
-    
+
     return config
   },
 }
