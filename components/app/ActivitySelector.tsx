@@ -2,53 +2,44 @@
 
 import { useEffect, useState } from 'react'
 import { useAppStore } from '@/store/useAppStore'
-// Helper to get Strava activities (client-side only)
-async function getStravaActivities(accessToken: string, page: number = 1, perPage: number = 30) {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    per_page: perPage.toString(),
-  })
-  
-  const response = await fetch(
-    `https://www.strava.com/api/v3/athlete/activities?${params.toString()}`,
-    {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-      },
-    }
-  )
-  
-  if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`Failed to fetch Strava activities: ${error}`)
-  }
-  
-  return response.json()
+
+interface ActivitySelectorProps {
+  onSelect: (activity: any) => void
+  athleteId?: string
 }
 
-export function ActivitySelector({ onSelect }: { onSelect: (activity: any) => void }) {
+export function ActivitySelector({ onSelect, athleteId }: ActivitySelectorProps) {
   const { setActivities, activities } = useAppStore()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    loadActivities()
-  }, [])
+    if (athleteId) {
+      loadActivities()
+    } else {
+      setLoading(false)
+    }
+  }, [athleteId])
 
   const loadActivities = async () => {
+    if (!athleteId) return
+
     setLoading(true)
     setError(null)
-    
+
     try {
-      // Get access token from localStorage
-      const tokenData = localStorage.getItem('strava_token')
-      if (!tokenData) {
-        throw new Error('No Strava token found')
+      const response = await fetch(`/api/activities?athleteId=${athleteId}`)
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        if (response.status === 401) {
+          throw new Error('Unauthorized. Please reconnect with Strava.')
+        }
+        throw new Error(errorData.error || 'Failed to fetch activities')
       }
-      
-      const token = JSON.parse(tokenData)
-      const activities = await getStravaActivities(token.access_token, 1, 30)
-      setActivities(activities)
+
+      const data = await response.json()
+      setActivities(data)
     } catch (err: any) {
       console.error('Failed to load activities:', err)
       setError(err.message || 'Failed to load activities')
@@ -57,9 +48,23 @@ export function ActivitySelector({ onSelect }: { onSelect: (activity: any) => vo
     }
   }
 
+  if (!athleteId) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-400 mb-4">Connect with Strava to see your activities</p>
+        <a
+          href="/api/strava/auth"
+          className="px-6 py-3 bg-[#fc4c02] text-white font-bold rounded hover:bg-[#e34402] transition-colors"
+        >
+          Connect with Strava
+        </a>
+      </div>
+    )
+  }
+
   if (loading) {
     return (
-      <div className="text-center">
+      <div className="text-center py-8">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
         <p className="text-gray-400">Loading activities...</p>
       </div>
@@ -68,7 +73,7 @@ export function ActivitySelector({ onSelect }: { onSelect: (activity: any) => vo
 
   if (error) {
     return (
-      <div className="text-center max-w-md">
+      <div className="text-center max-w-md mx-auto py-8">
         <p className="text-red-500 mb-4">{error}</p>
         <button
           onClick={loadActivities}

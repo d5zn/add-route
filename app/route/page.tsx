@@ -19,22 +19,19 @@ function AppContent() {
 
   useEffect(() => {
     setMounted(true)
-    
+
     // Check for Strava callback
     const athleteId = searchParams.get('athlete_id')
     if (athleteId) {
-      // User just connected via Strava
-      setStage('club-selection')
-    } else {
-      // Check if user has token
-      const token = localStorage.getItem('strava_token')
-      if (token) {
+      // User just connected via Strava or has ID in URL
+      // If we're in not-connected stage, move to club selection
+      if (stage === 'not-connected') {
         setStage('club-selection')
-      } else {
-        setStage('not-connected')
       }
+    } else {
+      setStage('not-connected')
     }
-  }, [searchParams, setStage])
+  }, [searchParams, setStage, stage])
 
   const handleConnectStrava = () => {
     window.location.href = '/api/strava/auth'
@@ -89,9 +86,9 @@ function AppContent() {
             }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7,10 12,15 17,10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7,10 12,15 17,10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
           </button>
         </div>
@@ -126,7 +123,10 @@ function AppContent() {
           )}
 
           {stage === 'workout-selection' && (
-            <ActivitySelector onSelect={handleActivitySelect} />
+            <ActivitySelector
+              onSelect={handleActivitySelect}
+              athleteId={searchParams.get('athlete_id') || undefined}
+            />
           )}
 
           {stage === 'connected' && currentActivity && (
