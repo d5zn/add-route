@@ -15,11 +15,11 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       // User declined authorization
-      return NextResponse.redirect(new URL('/?error=access_denied', request.url))
+      return NextResponse.redirect(new URL('https://addicted.design/?error=access_denied'))
     }
 
     if (!code) {
-      return NextResponse.redirect(new URL('/?error=missing_code', request.url))
+      return NextResponse.redirect(new URL('https://addicted.design/?error=missing_code'))
     }
 
     // Exchange code for access token
@@ -84,12 +84,13 @@ export async function GET(request: NextRequest) {
     })
 
     // Redirect to app with athlete ID
-    const appUrl = new URL('/route', request.url)
+    // Use explicit domain to avoid localhost redirection issues
+    const appUrl = new URL('https://addicted.design/route')
     appUrl.searchParams.set('athlete_id', tokenResponse.athlete.id.toString())
     return NextResponse.redirect(appUrl)
   } catch (error) {
     console.error('Strava callback error:', error)
-    return NextResponse.redirect(new URL('/?error=auth_failed', request.url))
+    return NextResponse.redirect(new URL('https://addicted.design/?error=auth_failed'))
   }
 }
 
