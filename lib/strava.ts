@@ -4,7 +4,7 @@
 
 const STRAVA_CLIENT_ID = process.env.STRAVA_CLIENT_ID || ''
 const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET || ''
-const STRAVA_REDIRECT_URI = process.env.STRAVA_REDIRECT_URI || 'http://localhost:3000/api/strava/callback'
+const STRAVA_REDIRECT_URI = process.env.STRAVA_REDIRECT_URI || 'https://stg.addicted.design/api/strava/callback'
 
 export interface StravaTokenResponse {
   token_type: string
@@ -59,7 +59,7 @@ export function getStravaAuthUrl(scope: string[] = ['read', 'activity:read']): s
     response_type: 'code',
     scope: scope.join(','),
   })
-  
+
   return `https://www.strava.com/oauth/authorize?${params.toString()}`
 }
 
@@ -79,12 +79,12 @@ export async function exchangeStravaCode(code: string): Promise<StravaTokenRespo
       grant_type: 'authorization_code',
     }),
   })
-  
+
   if (!response.ok) {
     const error = await response.text()
     throw new Error(`Failed to exchange Strava code: ${error}`)
   }
-  
+
   return response.json()
 }
 
@@ -104,12 +104,12 @@ export async function refreshStravaToken(refreshToken: string): Promise<StravaTo
       grant_type: 'refresh_token',
     }),
   })
-  
+
   if (!response.ok) {
     const error = await response.text()
     throw new Error(`Failed to refresh Strava token: ${error}`)
   }
-  
+
   return response.json()
 }
 
@@ -125,7 +125,7 @@ export async function getStravaActivities(
     page: page.toString(),
     per_page: perPage.toString(),
   })
-  
+
   const response = await fetch(
     `https://www.strava.com/api/v3/athlete/activities?${params.toString()}`,
     {
@@ -134,12 +134,12 @@ export async function getStravaActivities(
       },
     }
   )
-  
+
   if (!response.ok) {
     const error = await response.text()
     throw new Error(`Failed to fetch Strava activities: ${error}`)
   }
-  
+
   return response.json()
 }
 
@@ -158,12 +158,12 @@ export async function getStravaActivity(
       },
     }
   )
-  
+
   if (!response.ok) {
     const error = await response.text()
     throw new Error(`Failed to fetch Strava activity: ${error}`)
   }
-  
+
   return response.json()
 }
 
