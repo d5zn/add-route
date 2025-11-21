@@ -4,7 +4,7 @@
 
 const STRAVA_CLIENT_ID = process.env.STRAVA_CLIENT_ID || ''
 const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET || ''
-const STRAVA_REDIRECT_URI = process.env.STRAVA_REDIRECT_URI || 'https://addicted.design/route/oauth'
+const STRAVA_REDIRECT_URI = process.env.STRAVA_REDIRECT_URI || (process.env.NEXT_PUBLIC_BASE_URL ? `${process.env.NEXT_PUBLIC_BASE_URL}/route/oauth` : 'https://stg.addicted.design/route/oauth')
 
 export interface StravaTokenResponse {
   token_type: string
