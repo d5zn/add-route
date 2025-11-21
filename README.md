@@ -59,19 +59,6 @@ npx prisma migrate dev
 npx prisma migrate deploy
 ```
 
-### Prisma Commands
-
-```bash
-# Generate Prisma Client
-npx prisma generate
-
-# Open Prisma Studio (database GUI)
-npx prisma studio
-
-# Create migration
-npx prisma migrate dev --name migration_name
-```
-
 ## 🔐 Environment Variables
 
 Create `.env` file:
@@ -94,25 +81,6 @@ STRAVA_REDIRECT_URI="http://localhost:3000/api/strava/callback"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
-## 🚢 Deployment
-
-### Railway
-
-See [docs/RAILWAY_DEPLOY.md](docs/RAILWAY_DEPLOY.md) for detailed deployment instructions.
-
-**Quick steps:**
-1. Connect GitHub repo to Railway
-2. Add PostgreSQL database
-3. Set environment variables
-4. Deploy!
-
-## 📚 Documentation
-
-- [Architecture](docs/ARCHITECTURE-NEXT.md) - System architecture
-- [Migration Progress](docs/MIGRATION_PROGRESS.md) - Migration status
-- [Railway Deploy](docs/RAILWAY_DEPLOY.md) - Deployment guide
-- [API Endpoints](docs/API_ENDPOINTS.md) - API documentation
-
 ## 🛠️ Tech Stack
 
 - **Framework:** Next.js 16 (App Router)
@@ -134,17 +102,6 @@ npm run db:migrate   # Run database migrations
 npm run db:studio    # Open Prisma Studio
 ```
 
-## ⚠️ Deprecated Code
-
-See [DEPRECATED.md](DEPRECATED.md) for list of deprecated files.
-
-Old code (Python server, Vanilla JS app, old admin panel) is kept for reference but should not be modified.
-
 ## 📄 License
 
 MIT
-
----
-
-**Status:** ✅ Next.js Migration Complete (89%)  
-**Last Updated:** November 14, 2025
