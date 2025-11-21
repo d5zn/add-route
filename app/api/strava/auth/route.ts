@@ -7,7 +7,7 @@ import { getStravaAuthUrl } from '@/lib/strava'
  */
 export async function GET(request: NextRequest) {
   try {
-    const authUrl = getStravaAuthUrl(['read', 'activity:read'])
+    const authUrl = getStravaAuthUrl(['read', 'activity:read_all'])
     return NextResponse.redirect(authUrl)
   } catch (error) {
     console.error('Strava auth error:', error)
